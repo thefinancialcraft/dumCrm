@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insurance CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Inter', sans-serif; 
+      -webkit-font-smoothing: antialiased;
+    }
+    .tab-active { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    .modal { 
+      display: none; 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 50; 
+      animation: fadeIn 0.2s ease;
+    }
+    .modal.active { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+    }
+    .modal-content {
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+    .badge { 
+      font-size: 0.7rem; 
+      padding: 0.3rem 0.65rem; 
+      border-radius: 20px; 
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px);
+    }
+    .btn-call {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-call:hover {
+      box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
+      transform: translateY(-2px);
+    }
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="glass-effect shadow-sm sticky top-0 z-40 border-b border-gray-200">
+    <div class="px-5 py-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white text-xl">
+          🏥
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-gray-800">Insurance CRM</h1>
+          <p class="text-xs text-gray-500 font-light">Policy Management</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="flex gap-2 px-4 pb-4">
+      <button onclick="switchTab('all')" id="tab-all" class="tab-active flex-1 px-4 py-2.5 text-xs font-semibold rounded-xl">
+        All <span id="count-all" class="ml-1">0</span>
+      </button>
+      <button onclick="switchTab('pending')" id="tab-pending" class="flex-1 px-4 py-2.5 text-xs font-semibold text-gray-600 bg-white rounded-xl">
+        Pending <span id="count-pending" class="ml-1">0</span>
+      </button>
+      <button onclick="switchTab('contacted')" id="tab-contacted" class="flex-1 px-4 py-2.5 text-xs font-semibold text-gray-600 bg-white rounded-xl">
+        Done <span id="count-contacted" class="ml-1">0</span>
+      </button>
+      <button onclick="switchTab('callback')" id="tab-callback" class="flex-1 px-4 py-2.5 text-xs font-semibold text-gray-600 bg-white rounded-xl">
+        Callback <span id="count-callback" class="ml-1">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Search Bar -->
+  <div class="px-5 py-4">
+    <div class="relative">
+      <input type="text" id="searchInput" placeholder="Search by name, policy, or phone..." 
+        class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm">
+      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+    </div>
+  </div>
+
+  <!-- Cards Container -->
+  <div id="cardsContainer" class="px-5 pb-6 space-y-4"></div>
+
+  <!-- Disposition Modal -->
+  <div id="dispositionModal" class="modal">
+    <div class="modal-content bg-white rounded-3xl shadow-2xl mx-4 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white rounded-t-3xl px-6 py-5 flex justify-between items-center border-b border-gray-100">
+        <h3 class="text-lg font-bold text-gray-800">Update Status</h3>
+        <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 text-2xl transition-all">×</button>
+      </div>
+      
+      <div class="p-6 space-y-5">
+        <div id="modalCustomerInfo" class="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-2xl text-sm"></div>
+        
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Disposition</label>
+          <select id="dispositionSelect" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm transition-all">
+            <option value="">Select status...</option>
+            <option value="interested">✅ Interested</option>
+            <option value="not_interested">❌ Not Interested</option>
+            <option value="callback">📞 Callback Required</option>
+            <option value="wrong_number">🚫 Wrong Number</option>
+            <option value="not_reachable">📵 Not Reachable</option>
+            <option value="already_renewed">✔️ Already Renewed</option>
+            <option value="will_think">🤔 Will Think</option>
+          </select>
+        </div>
+
+        <div id="callbackSection" style="display:none;">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Callback Date & Time</label>
+          <input type="datetime-local" id="callbackDateTime" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm transition-all">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+          <textarea id="dispositionNotes" rows="3" placeholder="Add notes about the conversation..." 
+            class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm transition-all resize-none"></textarea>
+        </div>
+
+        <button onclick="saveDisposition()" class="w-full btn-primary text-white font-semibold py-3.5 rounded-xl">
+          Save & Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const data = [
+      {sno:172, policy:"33524109202401", date:"30-10-2025", name:"SHANKARA RJ", phone:"7039890752", plan:"RA FLT T+10L Z2 2A", dob:"05-11-1959", amount:57925},
+      {sno:173, policy:"34353224202400", date:"30-10-2025", name:"ANKUSH METHAJI MORE", phone:"9890741574", plan:"AS F D+10L DM PD3 2A", dob:"01-12-1960", amount:52842},
+      {sno:174, policy:"34412262202400", date:"30-10-2025", name:"RAMJANAK TIWARI", phone:"9033164468", plan:"AS F G+10L PD4 2A", dob:"09-08-1959", amount:57419},
+      {sno:175, policy:"34410361202400", date:"30-10-2025", name:"ASHOKE KUMAR AGARWALA", phone:"9933015120", plan:"Senior First Gold IND 10L 0% Copay Z2", dob:"23-09-1954", amount:64519},
+      {sno:176, policy:"34403077202400", date:"30-10-2025", name:"BALVINDER KUMAR SHARMA", phone:"9211563035", plan:"AS F D+10L PD3 2A", dob:"03-08-1959", amount:58969},
+      {sno:177, policy:"34411107202400", date:"30-10-2025", name:"PIYUSH LAXMICHAND SAVLA", phone:"9967593900", plan:"AS F P+ 10L DM PD3 2A1C", dob:"13-05-1965", amount:57955},
+      {sno:178, policy:"34411476202400", date:"30-10-2025", name:"MUMMINENI KIRAN KUMAR NAIDU", phone:"8185813315", plan:"RA FLT T+10L Z2 DM G 2A", dob:"02-12-1964", amount:54040},
+      {sno:179, policy:"34331661202400", date:"30-10-2025", name:"SIBY KOZHIPOOVIL VARGHESE", phone:"9819340439", plan:"AS F T+ 10L DM PD3 2A", dob:"30-06-1963", amount:55903},
+      {sno:180, policy:"34411640202400", date:"30-10-2025", name:"ASHOK SHAMLAL RAI", phone:"9881049789", plan:"AS F G+15L PD4 2A", dob:"17-06-1962", amount:65429},
+      {sno:181, policy:"33524273202401", date:"30-10-2025", name:"BHASKAR N JORWEKAR", phone:"7387188855", plan:"RA FLT P+10L Z2 2A", dob:"07-09-1960", amount:56321},
+      {sno:182, policy:"33525633202401", date:"30-10-2025", name:"BUKINI SAITHARUN", phone:"9010501061", plan:"RA FLT T+ 10L Z2 DM G 2A", dob:"02-10-1964", amount:70025},
+      {sno:183, policy:"30057444202413", date:"30-10-2025", name:"ANIL KUMAR KOUL", phone:"8920216573", plan:"RA IND T+20L Z1", dob:"07-10-1961", amount:82845},
+      {sno:184, policy:"32802048202402", date:"31-10-2025", name:"Vijay Kumar Jhawar", phone:"9891029210", plan:"RA FLT T+10L Z1 2A2C", dob:"18-01-1962", amount:75198},
+      {sno:185, policy:"33456733202401", date:"31-10-2025", name:"Jayant Sinha", phone:"9920684271", plan:"RA FLT P+5L Z1 2A", dob:"20-09-1962", amount:56967},
+      {sno:186, policy:"34411208202400", date:"31-10-2025", name:"SANTOSH KUMAR SRIVASTAVA", phone:"9650173478", plan:"RA FLT P+50L Z1 1A1C", dob:"10-04-1965", amount:72574},
+      {sno:187, policy:"31400465202404", date:"31-10-2025", name:"Vijaya Laxmi Sinha", phone:"9930436168", plan:"Health Pulse 5L Enhanced 1A", dob:"02-12-1958", amount:51885},
+      {sno:188, policy:"32044796202402", date:"31-10-2025", name:"Swadesh Prakash", phone:"8130723874", plan:"ReAssure Floater 5L Z1 2A", dob:"19-03-1963", amount:62225},
+      {sno:189, policy:"32038657202403", date:"31-10-2025", name:"Joginder pal", phone:"9810598928", plan:"RA FLT P+20L Z1 2A", dob:"13-04-1964", amount:92270},
+      {sno:190, policy:"32045069202302", date:"31-10-2025", name:"Manzoor ilahi shah", phone:"9818420457", plan:"ReAssure IND 5L Z1", dob:"01-01-1964", amount:51931},
+      {sno:191, policy:"32044350202403", date:"31-10-2025", name:"Sai Karthik", phone:"7569422637", plan:"RA FLT P+5L HC Z2 2A", dob:"02-06-1963", amount:55596},
+      {sno:192, policy:"32735970202301", date:"31-10-2025", name:"TULSI DAS ADWANI", phone:"9617061222", plan:"RAR F 10L Z3 PD3 2A", dob:"12-01-1961", amount:54751},
+      {sno:193, policy:"32796121202402", date:"31-10-2025", name:"Ajay Gill", phone:"9560110971", plan:"RA FLT P+7.5L Z1 2A", dob:"12-03-1963", amount:55629},
+      {sno:194, policy:"32803547202402", date:"31-10-2025", name:"TANIYA CHATTERJEE", phone:"8961415224", plan:"Senior First Platinum Floater 10L 0% Copay 2A Z2", dob:"24-12-1960", amount:53991},
+      {sno:195, policy:"32805308202200", date:"31-10-2025", name:"Shiva Saxena", phone:"9119029999", plan:"Senior First Platinum Floater 5L 0% Copay 2A Z2", dob:"25-09-1954", amount:78529},
+      {sno:196, policy:"32805771202200", date:"31-10-2025", name:"DILLIP KUMAR BEHERA", phone:"9742418162", plan:"RAR F 5L Z3 PD3 2A", dob:"10-09-1958", amount:55074},
+      {sno:197, policy:"32804861202402", date:"31-10-2025", name:"Manmeet Singh", phone:"9654605714", plan:"Senior First Platinum Floater 5L 0% Copay 2A Z2", dob:"22-09-1956", amount:55785},
+      {sno:198, policy:"32804899202402", date:"31-10-2025", name:"VATSALA SINGH", phone:"8090646101", plan:"RAR F 10L Z3 DMG PD3 2A", dob:"28-06-1959", amount:71473},
+      {sno:199, policy:"33526403202300", date:"31-10-2025", name:"Rajeev Aggarwal", phone:"9923077477", plan:"RA FLT B+10L Z2 2A", dob:"03-12-1958", amount:61785},
+      {sno:200, policy:"33526119202401", date:"31-10-2025", name:"Abdul Wahab Hasan", phone:"9885116142", plan:"HC VARIANT2022 IND 10L", dob:"24-06-1955", amount:61188}
+    ];
+
+    let dispositions = {};
+    let currentTab = 'all';
+    let currentPolicy = null;
+
+    function getDisposition(policy) {
+      return dispositions[policy] || { status: 'pending', notes: '', callback: null, history: [] };
+    }
+
+    function setDisposition(policy, data) {
+      dispositions[policy] = data;
+      renderCards();
+      updateCounts();
+    }
+
+    function getStatusBadge(status) {
+      const badges = {
+        pending: '<span class="badge bg-gray-100 text-gray-600">⏳ Pending</span>',
+        interested: '<span class="badge bg-green-50 text-green-600">✅ Interested</span>',
+        not_interested: '<span class="badge bg-red-50 text-red-600">❌ Not Interested</span>',
+        callback: '<span class="badge bg-yellow-50 text-yellow-600">📞 Callback</span>',
+        wrong_number: '<span class="badge bg-gray-50 text-gray-500">🚫 Wrong Number</span>',
+        not_reachable: '<span class="badge bg-orange-50 text-orange-600">📵 Not Reachable</span>',
+        already_renewed: '<span class="badge bg-blue-50 text-blue-600">✔️ Renewed</span>',
+        will_think: '<span class="badge bg-purple-50 text-purple-600">🤔 Thinking</span>'
+      };
+      return badges[status] || badges.pending;
+    }
+
+    function renderCards() {
+      const container = document.getElementById("cardsContainer");
+      const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+      
+      container.innerHTML = '';
+      
+      let filtered = data.filter(item => {
+        const disp = getDisposition(item.policy);
+        const matchesSearch = !searchTerm || 
+          item.name.toLowerCase().includes(searchTerm) ||
+          item.policy.includes(searchTerm) ||
+          item.phone.includes(searchTerm);
+        
+        if (!matchesSearch) return false;
+        
+        if (currentTab === 'all') return true;
+        if (currentTab === 'pending') return disp.status === 'pending';
+        if (currentTab === 'contacted') return disp.status !== 'pending' && disp.status !== 'callback';
+        if (currentTab === 'callback') return disp.status === 'callback';
+        
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-16 text-gray-400 text-sm">No records found</div>';
+        return;
+      }
+
+      filtered.forEach(item => {
+        const disp = getDisposition(item.policy);
+        const hasCallback = disp.callback && new Date(disp.callback) > new Date();
+        
+        const card = document.createElement("div");
+        card.className = "card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden";
+
+        card.innerHTML = `
+          <div class="p-5">
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex-1">
+                <h3 class="font-bold text-gray-800 text-base mb-1 leading-tight">${item.name}</h3>
+                <p class="text-xs text-gray-400 font-light">Expiry: ${item.date}</p>
+              </div>
+              ${getStatusBadge(disp.status)}
+            </div>
+            
+            ${hasCallback ? `
+              <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-100 rounded-xl p-3 mb-4 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">⏰</span>
+                  <div>
+                    <div class="font-semibold text-yellow-800">Callback Scheduled</div>
+                    <div class="text-yellow-700 mt-0.5">${new Date(disp.callback).toLocaleString('en-IN', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'})}</div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400 font-light">Policy</span>
+                <span class="text-gray-700 font-medium">${item.policy}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400 font-light">DOB</span>
+                <span class="text-gray-700">${item.dob}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400 font-light">Premium</span>
+                <span class="text-gray-800 font-bold">₹${item.amount.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-xl p-3 mb-4 text-xs text-gray-600">
+              <div class="font-medium text-gray-700 mb-1">Plan Details</div>
+              <div class="leading-relaxed">${item.plan}</div>
+            </div>
+            
+            ${disp.notes ? `
+              <div class="bg-blue-50 rounded-xl p-3 mb-4 text-xs">
+                <div class="flex gap-2">
+                  <span class="text-base">📝</span>
+                  <div class="text-gray-700 leading-relaxed">${disp.notes}</div>
+                </div>
+              </div>
+            ` : ''}
+            
+            <div class="flex gap-3">
+              <a href="tel:${item.phone}" 
+                class="flex-1 btn-call text-white font-semibold py-3 px-4 rounded-xl text-sm text-center flex items-center justify-center gap-2">
+                📞 Call
+              </a>
+              <button onclick="openModal('${item.policy}')" 
+                class="flex-1 btn-primary text-white font-semibold py-3 px-4 rounded-xl text-sm">
+                Update
+              </button>
+            </div>
+            
+            <div class="mt-3 text-center">
+              <span class="text-xs text-gray-400 font-light">${item.phone}</span>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      document.querySelectorAll('[id^="tab-"]').forEach(t => {
+        t.classList.remove('tab-active');
+        t.classList.add('text-gray-600', 'bg-white');
+      });
+      
+      document.getElementById(`tab-${tab}`).classList.add('tab-active');
+      document.getElementById(`tab-${tab}`).classList.remove('text-gray-600', 'bg-white');
+      
+      renderCards();
+    }
+
+    function updateCounts() {
+      const all = data.length;
+      const pending = data.filter(item => getDisposition(item.policy).status === 'pending').length;
+      const contacted = data.filter(item => {
+        const status = getDisposition(item.policy).status;
+        return status !== 'pending' && status !== 'callback';
+      }).length;
+      const callback = data.filter(item => getDisposition(item.policy).status === 'callback').length;
+      
+      document.getElementById('count-all').textContent = all;
+      document.getElementById('count-pending').textContent = pending;
+      document.getElementById('count-contacted').textContent = contacted;
+      document.getElementById('count-callback').textContent = callback;
+    }
+
+    function openModal(policy) {
+      currentPolicy = policy;
+      const item = data.find(d => d.policy === policy);
+      const disp = getDisposition(policy);
+      
+      document.getElementById('modalCustomerInfo').innerHTML = `
+        <div class="font-bold text-gray-800 text-base">${item.name}</div>
+        <div class="text-xs text-gray-600 mt-2 font-light">Policy: ${item.policy}</div>
+      `;
+      
+      document.getElementById('dispositionSelect').value = disp.status === 'pending' ? '' : disp.status;
+      document.getElementById('dispositionNotes').value = disp.notes || '';
+      document.getElementById('callbackDateTime').value = disp.callback || '';
+      
+      document.getElementById('dispositionModal').classList.add('active');
+      
+      if (disp.status === 'callback') {
+        document.getElementById('callbackSection').style.display = 'block';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('dispositionModal').classList.remove('active');
+      currentPolicy = null;
+    }
+
+    function saveDisposition() {
+      if (!currentPolicy) return;
+      
+      const status = document.getElementById('dispositionSelect').value;
+      const notes = document.getElementById('dispositionNotes').value;
+      const callback = document.getElementById('callbackDateTime').value;
+      
+      if (!status) {
+        alert('Please select a disposition');
+        return;
+      }
+      
+      const disp = getDisposition(currentPolicy);
+      disp.status = status;
+      disp.notes = notes;
+      disp.callback = status === 'callback' ? callback : null;
+      disp.lastUpdated = new Date().toISOString();
+      
+      if (!disp.history) disp.history = [];
+      disp.history.push({
+        status,
+        notes,
+        timestamp: new Date().toISOString()
+      });
+      
+      setDisposition(currentPolicy, disp);
+      closeModal();
+    }
+
+    document.getElementById('dispositionSelect').addEventListener('change', (e) => {
+      const section = document.getElementById('callbackSection');
+      section.style.display = e.target.value === 'callback' ? 'block' : 'none';
+    });
+
+    document.getElementById('searchInput').addEventListener('input', renderCards);
+
+    renderCards();
+    updateCounts();
+  </script>
+</body>
+</html>
