@@ -74,6 +74,14 @@
       box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
       transform: translateY(-2px);
     }
+    .btn-whatsapp {
+      background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-whatsapp:hover {
+      box-shadow: 0 8px 16px rgba(37, 211, 102, 0.4);
+      transform: translateY(-2px);
+    }
     .glass-effect {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
@@ -86,6 +94,19 @@
     .gradient-bg {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
+    .chip-filter {
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    .chip-filter:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .chip-active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white !important;
+      border-color: #667eea;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -93,14 +114,19 @@
   <!-- Header -->
   <header class="glass-effect shadow-sm sticky top-0 z-40 border-b border-gray-200">
     <div class="px-5 py-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white text-xl">
-          🏥
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white text-xl">
+            🏥
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-gray-800">Insurance CRM</h1>
+            <p class="text-xs text-gray-500 font-light">Care Supreme - Policy Management</p>
+          </div>
         </div>
-        <div>
-          <h1 class="text-xl font-bold text-gray-800">Insurance CRM</h1>
-          <p class="text-xs text-gray-500 font-light">Policy Management</p>
-        </div>
+        <button onclick="switchTab('settings')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-gray-100 border border-gray-200 transition-all text-xl">
+          ⚙️
+        </button>
       </div>
     </div>
     
@@ -119,14 +145,135 @@
         Callback <span id="count-callback" class="ml-1">0</span>
       </button>
     </div>
+    
+    <!-- Done Filter Chips (shown only when Done tab is active) -->
+    <div id="doneFilterChips" class="px-4 pb-4 hidden">
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="setDoneFilter('all')" id="chip-all" class="chip-filter chip-active px-3 py-1.5 text-xs font-semibold rounded-full">
+          All
+        </button>
+        <button onclick="setDoneFilter('interested')" id="chip-interested" class="chip-filter px-3 py-1.5 text-xs font-semibold rounded-full bg-green-50 text-green-600">
+          ✅ Interested
+        </button>
+        <button onclick="setDoneFilter('not_interested')" id="chip-not_interested" class="chip-filter px-3 py-1.5 text-xs font-semibold rounded-full bg-red-50 text-red-600">
+          ❌ Not Interested
+        </button>
+        <button onclick="setDoneFilter('wrong_number')" id="chip-wrong_number" class="chip-filter px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-50 text-gray-600">
+          🚫 Wrong Number
+        </button>
+        <button onclick="setDoneFilter('not_reachable')" id="chip-not_reachable" class="chip-filter px-3 py-1.5 text-xs font-semibold rounded-full bg-orange-50 text-orange-600">
+          📵 Not Reachable
+        </button>
+        <button onclick="setDoneFilter('already_renewed')" id="chip-already_renewed" class="chip-filter px-3 py-1.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-600">
+          ✔️ Renewed
+        </button>
+        <button onclick="setDoneFilter('will_think')" id="chip-will_think" class="chip-filter px-3 py-1.5 text-xs font-semibold rounded-full bg-purple-50 text-purple-600">
+          🤔 Thinking
+        </button>
+      </div>
+    </div>
   </header>
 
   <!-- Search Bar -->
-  <div class="px-5 py-4">
+  <div id="searchBar" class="px-5 py-4">
     <div class="relative">
       <input type="text" id="searchInput" placeholder="Search by name, policy, or phone..." 
         class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm">
       <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+    </div>
+  </div>
+
+  <!-- Settings Tab Content -->
+  <div id="settingsContent" class="px-5 py-6 hidden">
+    <div class="max-w-2xl mx-auto space-y-5">
+      <!-- Import Section -->
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-6 border-2 border-blue-100 shadow-sm">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl flex-shrink-0">
+            📥
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Import Customer Data</h3>
+            <p class="text-sm text-gray-600 mb-4 leading-relaxed">Upload your CSV file with customer leads. Make sure to use the correct format by downloading our template first.</p>
+            
+            <div class="flex gap-3">
+              <button onclick="downloadSampleTemplate()" class="flex-1 bg-white border-2 border-blue-300 text-blue-700 font-semibold py-3 px-5 rounded-xl text-sm hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm">
+                📄 Download Template
+              </button>
+              
+              <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+              <button onclick="document.getElementById('csvFileInput').click()" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold py-3 px-5 rounded-xl text-sm hover:shadow-lg transition-all">
+                📤 Upload CSV
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Section -->
+      <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-3xl p-6 border-2 border-green-100 shadow-sm">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
+            📤
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Export Complete Data</h3>
+            <p class="text-sm text-gray-600 mb-4 leading-relaxed">Download all customer leads with complete disposition history, notes, callbacks, and interaction timeline.</p>
+            
+            <button onclick="exportData()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold py-3 px-5 rounded-xl text-sm hover:shadow-lg transition-all">
+              💾 Export to CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Restore Backup Section -->
+      <div class="bg-gradient-to-r from-orange-50 to-amber-50 rounded-3xl p-6 border-2 border-orange-100 shadow-sm">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-2xl flex-shrink-0">
+            ⚡
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Restore from Backup</h3>
+            <p class="text-sm text-gray-600 mb-4 leading-relaxed">Upload previously exported CSV file to restore all data including complete disposition history and notes.</p>
+            
+            <input type="file" id="backupFileInput" accept=".csv" class="hidden" onchange="handleBackupRestore(event)">
+            <button onclick="document.getElementById('backupFileInput').click()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white font-semibold py-3 px-5 rounded-xl text-sm hover:shadow-lg transition-all">
+              📥 Restore Backup
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-3xl p-6 border-2 border-purple-100 shadow-sm">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-2xl flex-shrink-0">
+            📊
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-bold text-gray-800 mb-3">System Statistics</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white rounded-xl p-4">
+                <div class="text-2xl font-bold text-purple-600" id="stat-total">0</div>
+                <div class="text-xs text-gray-500 mt-1">Total Leads</div>
+              </div>
+              <div class="bg-white rounded-xl p-4">
+                <div class="text-2xl font-bold text-green-600" id="stat-contacted">0</div>
+                <div class="text-xs text-gray-500 mt-1">Contacted</div>
+              </div>
+              <div class="bg-white rounded-xl p-4">
+                <div class="text-2xl font-bold text-orange-600" id="stat-pending">0</div>
+                <div class="text-xs text-gray-500 mt-1">Pending</div>
+              </div>
+              <div class="bg-white rounded-xl p-4">
+                <div class="text-2xl font-bold text-yellow-600" id="stat-callback">0</div>
+                <div class="text-xs text-gray-500 mt-1">Callbacks</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -182,46 +329,63 @@
 
   <script>
     const data = [
-      {sno:172, policy:"33524109202401", date:"30-10-2025", name:"SHANKARA RJ", phone:"7039890752", plan:"RA FLT T+10L Z2 2A", dob:"05-11-1959", amount:57925},
-      {sno:173, policy:"34353224202400", date:"30-10-2025", name:"ANKUSH METHAJI MORE", phone:"9890741574", plan:"AS F D+10L DM PD3 2A", dob:"01-12-1960", amount:52842},
-      {sno:174, policy:"34412262202400", date:"30-10-2025", name:"RAMJANAK TIWARI", phone:"9033164468", plan:"AS F G+10L PD4 2A", dob:"09-08-1959", amount:57419},
-      {sno:175, policy:"34410361202400", date:"30-10-2025", name:"ASHOKE KUMAR AGARWALA", phone:"9933015120", plan:"Senior First Gold IND 10L 0% Copay Z2", dob:"23-09-1954", amount:64519},
-      {sno:176, policy:"34403077202400", date:"30-10-2025", name:"BALVINDER KUMAR SHARMA", phone:"9211563035", plan:"AS F D+10L PD3 2A", dob:"03-08-1959", amount:58969},
-      {sno:177, policy:"34411107202400", date:"30-10-2025", name:"PIYUSH LAXMICHAND SAVLA", phone:"9967593900", plan:"AS F P+ 10L DM PD3 2A1C", dob:"13-05-1965", amount:57955},
-      {sno:178, policy:"34411476202400", date:"30-10-2025", name:"MUMMINENI KIRAN KUMAR NAIDU", phone:"8185813315", plan:"RA FLT T+10L Z2 DM G 2A", dob:"02-12-1964", amount:54040},
-      {sno:179, policy:"34331661202400", date:"30-10-2025", name:"SIBY KOZHIPOOVIL VARGHESE", phone:"9819340439", plan:"AS F T+ 10L DM PD3 2A", dob:"30-06-1963", amount:55903},
-      {sno:180, policy:"34411640202400", date:"30-10-2025", name:"ASHOK SHAMLAL RAI", phone:"9881049789", plan:"AS F G+15L PD4 2A", dob:"17-06-1962", amount:65429},
-      {sno:181, policy:"33524273202401", date:"30-10-2025", name:"BHASKAR N JORWEKAR", phone:"7387188855", plan:"RA FLT P+10L Z2 2A", dob:"07-09-1960", amount:56321},
-      {sno:182, policy:"33525633202401", date:"30-10-2025", name:"BUKINI SAITHARUN", phone:"9010501061", plan:"RA FLT T+ 10L Z2 DM G 2A", dob:"02-10-1964", amount:70025},
-      {sno:183, policy:"30057444202413", date:"30-10-2025", name:"ANIL KUMAR KOUL", phone:"8920216573", plan:"RA IND T+20L Z1", dob:"07-10-1961", amount:82845},
-      {sno:184, policy:"32802048202402", date:"31-10-2025", name:"Vijay Kumar Jhawar", phone:"9891029210", plan:"RA FLT T+10L Z1 2A2C", dob:"18-01-1962", amount:75198},
-      {sno:185, policy:"33456733202401", date:"31-10-2025", name:"Jayant Sinha", phone:"9920684271", plan:"RA FLT P+5L Z1 2A", dob:"20-09-1962", amount:56967},
-      {sno:186, policy:"34411208202400", date:"31-10-2025", name:"SANTOSH KUMAR SRIVASTAVA", phone:"9650173478", plan:"RA FLT P+50L Z1 1A1C", dob:"10-04-1965", amount:72574},
-      {sno:187, policy:"31400465202404", date:"31-10-2025", name:"Vijaya Laxmi Sinha", phone:"9930436168", plan:"Health Pulse 5L Enhanced 1A", dob:"02-12-1958", amount:51885},
-      {sno:188, policy:"32044796202402", date:"31-10-2025", name:"Swadesh Prakash", phone:"8130723874", plan:"ReAssure Floater 5L Z1 2A", dob:"19-03-1963", amount:62225},
-      {sno:189, policy:"32038657202403", date:"31-10-2025", name:"Joginder pal", phone:"9810598928", plan:"RA FLT P+20L Z1 2A", dob:"13-04-1964", amount:92270},
-      {sno:190, policy:"32045069202302", date:"31-10-2025", name:"Manzoor ilahi shah", phone:"9818420457", plan:"ReAssure IND 5L Z1", dob:"01-01-1964", amount:51931},
-      {sno:191, policy:"32044350202403", date:"31-10-2025", name:"Sai Karthik", phone:"7569422637", plan:"RA FLT P+5L HC Z2 2A", dob:"02-06-1963", amount:55596},
-      {sno:192, policy:"32735970202301", date:"31-10-2025", name:"TULSI DAS ADWANI", phone:"9617061222", plan:"RAR F 10L Z3 PD3 2A", dob:"12-01-1961", amount:54751},
-      {sno:193, policy:"32796121202402", date:"31-10-2025", name:"Ajay Gill", phone:"9560110971", plan:"RA FLT P+7.5L Z1 2A", dob:"12-03-1963", amount:55629},
-      {sno:194, policy:"32803547202402", date:"31-10-2025", name:"TANIYA CHATTERJEE", phone:"8961415224", plan:"Senior First Platinum Floater 10L 0% Copay 2A Z2", dob:"24-12-1960", amount:53991},
-      {sno:195, policy:"32805308202200", date:"31-10-2025", name:"Shiva Saxena", phone:"9119029999", plan:"Senior First Platinum Floater 5L 0% Copay 2A Z2", dob:"25-09-1954", amount:78529},
-      {sno:196, policy:"32805771202200", date:"31-10-2025", name:"DILLIP KUMAR BEHERA", phone:"9742418162", plan:"RAR F 5L Z3 PD3 2A", dob:"10-09-1958", amount:55074},
-      {sno:197, policy:"32804861202402", date:"31-10-2025", name:"Manmeet Singh", phone:"9654605714", plan:"Senior First Platinum Floater 5L 0% Copay 2A Z2", dob:"22-09-1956", amount:55785},
-      {sno:198, policy:"32804899202402", date:"31-10-2025", name:"VATSALA SINGH", phone:"8090646101", plan:"RAR F 10L Z3 DMG PD3 2A", dob:"28-06-1959", amount:71473},
-      {sno:199, policy:"33526403202300", date:"31-10-2025", name:"Rajeev Aggarwal", phone:"9923077477", plan:"RA FLT B+10L Z2 2A", dob:"03-12-1958", amount:61785},
-      {sno:200, policy:"33526119202401", date:"31-10-2025", name:"Abdul Wahab Hasan", phone:"9885116142", plan:"HC VARIANT2022 IND 10L", dob:"24-06-1955", amount:61188}
+      {sno:1, policy:"90931696", date:"11-Oct-2025", name:"Boya Tribhuvan Teja", phone:"9885562055", plan:"Care Supreme - SI: ₹17,50,000", dob:"32 yrs", amount:7562, sumInsured:"₹17,50,000", addonCost:645},
+      {sno:2, policy:"91075578", date:"12-Oct-2025", name:"Gurparshad Singh", phone:"9501242244", plan:"Care Supreme - SI: ₹15,00,000 (4 members)", dob:"47, 44, 18, 14 yrs", amount:46627, sumInsured:"₹15,00,000", addonCost:2151},
+      {sno:3, policy:"90931524", date:"13-Oct-2025", name:"Boya Varalakshmi Dev", phone:"9885562055", plan:"Care Supreme - SI: ₹17,50,000", dob:"65 yrs", amount:105604, sumInsured:"₹17,50,000", addonCost:2796},
+      {sno:4, policy:"90936353", date:"14-Oct-2025", name:"Manu Bai Vishnoi", phone:"9167631985", plan:"Care Supreme - SI: ₹10,50,000", dob:"59 yrs", amount:19922, sumInsured:"₹10,50,000", addonCost:1704},
+      {sno:5, policy:"91374698", date:"17-Oct-2025", name:"Apurva Gupta", phone:"9535684007", plan:"Care Supreme - SI: ₹1,25,00,000 (3 members)", dob:"36, 35, 2 yrs", amount:47884, sumInsured:"₹1,25,00,000", addonCost:0},
+      {sno:6, policy:"91178196", date:"17-Oct-2025", name:"Omprakash Sahu", phone:"9893830775", plan:"Care Supreme - SI: ₹25,00,000 (4 members)", dob:"40, 37, 10, 2 yrs", amount:18158, sumInsured:"₹25,00,000", addonCost:1523},
+      {sno:7, policy:"91270653", date:"20-Oct-2025", name:"Nandala Suresh", phone:"6303951543", plan:"Care Supreme - SI: ₹35,00,000 (3 members)", dob:"46, 40, 25 yrs", amount:42827, sumInsured:"₹35,00,000", addonCost:0},
+      {sno:8, policy:"91290285", date:"21-Oct-2025", name:"Mohammed Shoaib Ul Huq", phone:"9900533007", plan:"Care Supreme - SI: ₹15,00,000 (3 members)", dob:"62, 56, 19 yrs", amount:48373, sumInsured:"₹15,00,000", addonCost:4183},
+      {sno:9, policy:"91347202", date:"22-Oct-2025", name:"Dipan Banerjee", phone:"8584022210", plan:"Care Supreme - SI: ₹15,00,000 (2 members)", dob:"59, 58 yrs", amount:32028, sumInsured:"₹15,00,000", addonCost:2737},
+      {sno:10, policy:"91540681", date:"24-Oct-2025", name:"Shashanka Sekhar Nath", phone:"7381252534", plan:"Care Supreme - SI: ₹10,50,000 (2 members)", dob:"64, 60 yrs", amount:41356, sumInsured:"₹10,50,000", addonCost:3585},
+      {sno:11, policy:"90941094", date:"24-Oct-2025", name:"Mangiiash Anant Ingale", phone:"9860359501", plan:"Care Supreme - SI: ₹15,00,000 (3 members)", dob:"52, 43, 20 yrs", amount:33753, sumInsured:"₹15,00,000", addonCost:0},
+      {sno:12, policy:"91681428", date:"26-Oct-2025", name:"Mrs Santosh", phone:"9760553925", plan:"Care Supreme - SI: ₹15,00,000", dob:"63 yrs", amount:29694, sumInsured:"₹15,00,000", addonCost:2592},
+      {sno:13, policy:"91425871", date:"26-Oct-2025", name:"Nalla Purendar", phone:"9676315560", plan:"Care Supreme - SI: ₹25,00,000 (4 members)", dob:"42, 36, 10, 6 yrs", amount:25226, sumInsured:"₹25,00,000", addonCost:0},
+      {sno:14, policy:"90934716", date:"27-Oct-2025", name:"Shyam Kishore", phone:"7090555530", plan:"Care Supreme - SI: ₹25,00,000 (4 members)", dob:"39, 30, 7, 2 yrs", amount:21358, sumInsured:"₹25,00,000", addonCost:1815},
+      {sno:15, policy:"90999914", date:"29-Oct-2025", name:"Redy V S R Krishha Kumari", phone:"9030699991", plan:"Care Supreme - SI: ₹62,50,000 (2 members)", dob:"42, 11 yrs", amount:18941, sumInsured:"₹62,50,000", addonCost:1248},
+      {sno:16, policy:"91763194", date:"29-Oct-2025", name:"Lakshmi Narasimha Rao Wunnava", phone:"9742544850", plan:"Care Supreme - SI: ₹25,00,000", dob:"89 yrs", amount:94414, sumInsured:"₹25,00,000", addonCost:8541},
+      {sno:17, policy:"91574188", date:"30-Oct-2025", name:"Dnyaneshwar Hiraman Gaikwad", phone:"9421525223", plan:"Care Supreme - SI: ₹25,00,000 (2 members)", dob:"65, 60 yrs", amount:38495, sumInsured:"₹25,00,000", addonCost:0},
+      {sno:18, policy:"91653682", date:"31-Oct-2025", name:"Shanker Venkata Wunnava", phone:"9742544850", plan:"Care Supreme - SI: ₹37,50,000 (3 members)", dob:"57, 50, 12 yrs", amount:51552, sumInsured:"₹37,50,000", addonCost:3562}
     ];
 
-  let dispositions = {};
-  const STORAGE_KEY = 'rnl_dispositions';
+    let dispositions = {};
+    const STORAGE_KEY = 'rnl_dispositions';
+    const DATA_STORAGE_KEY = 'rnl_customer_data';
     let currentTab = 'all';
+    let currentDoneFilter = 'all';
     let currentPolicy = null;
+
+    function getWhatsAppLink(item) {
+      const basePremium = item.amount - item.addonCost;
+      const discountAmount = Math.round(basePremium * 0.05);
+      const finalAmount = basePremium - discountAmount;
+      
+      const message = `Hello ${item.name},
+
+This is regarding your Care Supreme policy renewal:
+
+📋 *Policy Details:*
+Policy No: ${item.policy}
+Sum Insured: ${item.sumInsured}
+Expiry Date: ${item.date}
+
+💰 *Premium Details:*
+Base Premium: ₹${basePremium.toLocaleString("en-IN")}
+
+🎉 *Sunday Exclusive Offer!*
+Pay today and get 5% OFF
+Discount: ₹${discountAmount.toLocaleString("en-IN")}
+*Final Amount: ₹${finalAmount.toLocaleString("en-IN")}*
+
+This special offer is valid only for today. Would you like to proceed with the renewal?`;
+
+      return `https://wa.me/91${item.phone}?text=${encodeURIComponent(message)}`;
+    }
 
     function getDisposition(policy) {
       const d = dispositions[policy];
       if (!d) return { status: 'pending', notes: '', callback: null, history: [] };
-      // Ensure history array exists
       if (!Array.isArray(d.history)) d.history = [];
       return d;
     }
@@ -242,6 +406,19 @@
       } catch (e) {
         console.warn('Could not load dispositions from localStorage', e);
         dispositions = {};
+      }
+      
+      try {
+        const customData = localStorage.getItem(DATA_STORAGE_KEY);
+        if (customData) {
+          const parsed = JSON.parse(customData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            data.length = 0;
+            data.push(...parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load custom data', e);
       }
     }
 
@@ -284,7 +461,13 @@
         
         if (currentTab === 'all') return true;
         if (currentTab === 'pending') return disp.status === 'pending';
-        if (currentTab === 'contacted') return disp.status !== 'pending' && disp.status !== 'callback';
+        if (currentTab === 'contacted') {
+          const isDone = disp.status !== 'pending' && disp.status !== 'callback';
+          if (!isDone) return false;
+          
+          if (currentDoneFilter === 'all') return true;
+          return disp.status === currentDoneFilter;
+        }
         if (currentTab === 'callback') return disp.status === 'callback';
         
         return true;
@@ -293,6 +476,16 @@
       if (filtered.length === 0) {
         container.innerHTML = '<div class="text-center py-16 text-gray-400 text-sm">No records found</div>';
         return;
+      }
+
+      if (currentTab === 'contacted') {
+        filtered.sort((a, b) => {
+          const dispA = getDisposition(a.policy);
+          const dispB = getDisposition(b.policy);
+          const timeA = dispA.lastUpdated ? new Date(dispA.lastUpdated).getTime() : 0;
+          const timeB = dispB.lastUpdated ? new Date(dispB.lastUpdated).getTime() : 0;
+          return timeB - timeA;
+        });
       }
 
       filtered.forEach(item => {
@@ -330,7 +523,7 @@
                 <span class="text-gray-700 font-medium">${item.policy}</span>
               </div>
               <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400 font-light">DOB</span>
+                <span class="text-gray-400 font-light">Age</span>
                 <span class="text-gray-700">${item.dob}</span>
               </div>
               <div class="flex items-center justify-between text-sm">
@@ -342,6 +535,7 @@
             <div class="bg-gray-50 rounded-xl p-3 mb-4 text-xs text-gray-600">
               <div class="font-medium text-gray-700 mb-1">Plan Details</div>
               <div class="leading-relaxed">${item.plan}</div>
+              ${item.addonCost > 0 ? `<div class="mt-2 text-purple-600 font-medium">Add-on Cost: ₹${item.addonCost.toLocaleString("en-IN")}</div>` : ''}
             </div>
             
             ${disp.notes ? `
@@ -353,13 +547,18 @@
               </div>
             ` : ''}
             
-            <div class="flex gap-3">
+            <div class="grid grid-cols-3 gap-2">
               <a href="tel:${item.phone}" 
-                class="flex-1 btn-call text-white font-semibold py-3 px-4 rounded-xl text-sm text-center flex items-center justify-center gap-2">
+                class="btn-call text-white font-semibold py-3 px-2 rounded-xl text-xs text-center flex items-center justify-center">
                 📞 Call
               </a>
+              <a href="${getWhatsAppLink(item)}" 
+                target="_blank"
+                class="btn-whatsapp text-white font-semibold py-3 px-2 rounded-xl text-xs text-center flex items-center justify-center">
+                💬 WhatsApp
+              </a>
               <button onclick="openModal('${item.policy}')" 
-                class="flex-1 btn-primary text-white font-semibold py-3 px-4 rounded-xl text-sm">
+                class="btn-primary text-white font-semibold py-3 px-2 rounded-xl text-xs">
                 Update
               </button>
             </div>
@@ -384,6 +583,57 @@
       
       document.getElementById(`tab-${tab}`).classList.add('tab-active');
       document.getElementById(`tab-${tab}`).classList.remove('text-gray-600', 'bg-white');
+      
+      const searchBar = document.getElementById('searchBar');
+      const cardsContainer = document.getElementById('cardsContainer');
+      const settingsContent = document.getElementById('settingsContent');
+      const doneChips = document.getElementById('doneFilterChips');
+      
+      if (tab === 'settings') {
+        searchBar.classList.add('hidden');
+        cardsContainer.classList.add('hidden');
+        doneChips.classList.add('hidden');
+        settingsContent.classList.remove('hidden');
+        updateSettingsStats();
+      } else {
+        searchBar.classList.remove('hidden');
+        cardsContainer.classList.remove('hidden');
+        settingsContent.classList.add('hidden');
+        
+        if (tab === 'contacted') {
+          doneChips.classList.remove('hidden');
+        } else {
+          doneChips.classList.add('hidden');
+          currentDoneFilter = 'all';
+        }
+        
+        renderCards();
+      }
+    }
+
+    function updateSettingsStats() {
+      const all = data.length;
+      const pending = data.filter(item => getDisposition(item.policy).status === 'pending').length;
+      const contacted = data.filter(item => {
+        const status = getDisposition(item.policy).status;
+        return status !== 'pending' && status !== 'callback';
+      }).length;
+      const callback = data.filter(item => getDisposition(item.policy).status === 'callback').length;
+      
+      document.getElementById('stat-total').textContent = all;
+      document.getElementById('stat-contacted').textContent = contacted;
+      document.getElementById('stat-pending').textContent = pending;
+      document.getElementById('stat-callback').textContent = callback;
+    }
+
+    function setDoneFilter(filter) {
+      currentDoneFilter = filter;
+      
+      document.querySelectorAll('.chip-filter').forEach(chip => {
+        chip.classList.remove('chip-active');
+      });
+      
+      document.getElementById(`chip-${filter}`).classList.add('chip-active');
       
       renderCards();
     }
@@ -413,11 +663,11 @@
         <div class="text-xs text-gray-600 mt-2 font-light">Policy: ${item.policy}</div>
       `;
       
-  document.getElementById('dispositionSelect').value = disp.status === 'pending' ? '' : disp.status;
-  document.getElementById('dispositionNotes').value = disp.notes || '';
-  document.getElementById('callbackDateTime').value = disp.callback || '';
+      document.getElementById('dispositionSelect').value = disp.status === 'pending' ? '' : disp.status;
+      document.getElementById('dispositionNotes').value = disp.notes || '';
+      document.getElementById('callbackDateTime').value = disp.callback || '';
 
-  renderHistory(disp.history || []);
+      renderHistory(disp.history || []);
       
       document.getElementById('dispositionModal').classList.add('active');
       
@@ -471,7 +721,6 @@
         return;
       }
 
-      // Newest first
       const list = history.slice().reverse().map(h => {
         const dt = new Date(h.timestamp);
         const dateStr = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -506,10 +755,526 @@
 
     document.getElementById('searchInput').addEventListener('input', renderCards);
 
-  // Load persisted dispositions and then render
-  loadDispositions();
-  renderCards();
-  updateCounts();
+    function downloadSampleTemplate() {
+      const headers = ['policy_no', 'proposer', 'phone', 'plan_name', 'renewal_date', 'total_sum_insured', 'total_premium', 'proposed_addon_cost', 'ages'];
+      const sampleData = [
+        ['90931696', 'Boya Tribhuvan Teja', '9885562055', 'Care Supreme', '11-Oct-2025', '₹17,50,000', '7562', '645', '32'],
+        ['91075578', 'Gurparshad Singh', '9501242244', 'Care Supreme', '12-Oct-2025', '₹15,00,000', '46627', '2151', '47, 44, 18, 14'],
+        ['90931524', 'Boya Varalakshmi Dev', '9885562055', 'Care Supreme', '13-Oct-2025', '₹17,50,000', '105604', '2796', '65']
+      ];
+      
+      const rows = [headers, ...sampleData];
+      const csvContent = rows.map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'Insurance_CRM_Import_Template.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      alert('✅ Template downloaded!\n\nUse these exact column headers:\n• policy_no\n• proposer\n• phone\n• plan_name\n• renewal_date\n• total_sum_insured\n• total_premium\n• proposed_addon_cost\n• ages');
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const text = e.target.result;
+          const rows = text.split('\n').map(row => {
+            const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            return matches ? matches.map(cell => cell.replace(/^"|"$/g, '').trim()) : [];
+          }).filter(row => row.length > 0);
+          
+          if (rows.length < 2) {
+            alert('❌ CSV file must have headers and at least one data row');
+            return;
+          }
+          
+          const headers = rows[0].map(h => h.toLowerCase().trim());
+          
+          const requiredCols = ['policy_no', 'proposer', 'phone', 'plan_name', 'renewal_date', 'total_sum_insured', 'total_premium', 'proposed_addon_cost'];
+          const missingCols = requiredCols.filter(col => !headers.includes(col));
+          
+          if (missingCols.length > 0) {
+            alert(`❌ Missing required columns: ${missingCols.join(', ')}\n\nPlease download the sample template and use the correct format.`);
+            return;
+          }
+          
+          const newData = [];
+          let errorCount = 0;
+          
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length < headers.length || !row[0]) continue;
+            
+            try {
+              const getCell = (colName) => {
+                const idx = headers.indexOf(colName.toLowerCase());
+                return idx >= 0 ? row[idx] : '';
+              };
+              
+              const premium = parseInt(getCell('total_premium').replace(/[^0-9]/g, '')) || 0;
+              const addonCost = parseInt(getCell('proposed_addon_cost').replace(/[^0-9]/g, '')) || 0;
+              const sumInsured = getCell('total_sum_insured');
+              const planName = getCell('plan_name');
+              
+              const item = {
+                sno: newData.length + 1,
+                policy: getCell('policy_no'),
+                name: getCell('proposer'),
+                phone: getCell('phone').replace(/[^0-9]/g, ''),
+                date: getCell('renewal_date'),
+                plan: `${planName} - SI: ${sumInsured}`,
+                dob: getCell('ages') || 'N/A',
+                amount: premium,
+                sumInsured: sumInsured,
+                addonCost: addonCost
+              };
+              
+              if (!item.policy || !item.name || !item.phone) {
+                errorCount++;
+                continue;
+              }
+              
+              newData.push(item);
+            } catch (err) {
+              errorCount++;
+              console.warn(`Error processing row ${i}:`, err);
+            }
+          }
+          
+          if (newData.length === 0) {
+            alert('❌ No valid data found in CSV file');
+            return;
+          }
+          
+          const confirmMsg = `Import ${newData.length} new leads?\n\n⚠️ This will replace your current ${data.length} leads.\n${errorCount > 0 ? `\n${errorCount} rows had errors and were skipped.` : ''}`;
+          
+          if (!confirm(confirmMsg)) {
+            return;
+          }
+          
+          data.length = 0;
+          data.push(...newData);
+          
+          localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data));
+          
+          renderCards();
+          updateCounts();
+          
+          alert(`✅ Successfully imported ${newData.length} leads!${errorCount > 0 ? `\n⚠️ ${errorCount} rows were skipped due to errors.` : ''}`);
+        } catch (error) {
+          alert('❌ Error reading CSV file: ' + error.message);
+          console.error('Import error:', error);
+        }
+      };
+      
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function exportData() {
+      if (data.length === 0) {
+        alert('❌ No data to export!');
+        return;
+      }
+
+      const headers = [
+        'Policy No',
+        'Customer Name', 
+        'Phone Number',
+        'Plan Name',
+        'Renewal Date',
+        'Sum Insured',
+        'Total Premium',
+        'Addon Cost',
+        'Age/DOB',
+        'Current Status',
+        'Latest Notes',
+        'Callback Date/Time',
+        'Last Updated',
+        'Total Calls',
+        'Complete Disposition Log'
+      ];
+      
+      const exportRows = data.map(item => {
+        const disp = getDisposition(item.policy);
+        const callCount = (disp.history || []).length;
+        
+        const dispositionLog = (disp.history || []).map((h, idx) => {
+          const timestamp = new Date(h.timestamp);
+          const dateStr = timestamp.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+          const timeStr = timestamp.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+          
+          const status = (h.status || 'pending').replace(/_/g, ' ').toUpperCase();
+          const notes = h.notes ? h.notes.trim() : 'No notes';
+          
+          let logEntry = `Call ${idx + 1}: [${dateStr} at ${timeStr}] Status: ${status} | Notes: ${notes}`;
+          
+          if (h.callback) {
+            const cbTime = new Date(h.callback);
+            const cbDateStr = cbTime.toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric'
+            });
+            const cbTimeStr = cbTime.toLocaleTimeString('en-IN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            });
+            logEntry += ` | Callback Scheduled: ${cbDateStr} at ${cbTimeStr}`;
+          }
+          
+          return logEntry;
+        }).join(' || ');
+        
+        const currentStatus = (disp.status || 'pending').replace(/_/g, ' ').toUpperCase();
+        
+        let callbackInfo = 'Not Scheduled';
+        if (disp.callback) {
+          const cbTime = new Date(disp.callback);
+          callbackInfo = cbTime.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }) + ' at ' + cbTime.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        }
+        
+        let lastUpdated = 'Never';
+        if (disp.lastUpdated) {
+          const luTime = new Date(disp.lastUpdated);
+          lastUpdated = luTime.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }) + ' at ' + luTime.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        }
+        
+        return [
+          item.policy,
+          item.name,
+          item.phone,
+          item.plan.split(' - SI:')[0] || item.plan,
+          item.date,
+          item.sumInsured,
+          item.amount,
+          item.addonCost || 0,
+          item.dob,
+          currentStatus,
+          disp.notes || 'No notes added',
+          callbackInfo,
+          lastUpdated,
+          callCount,
+          dispositionLog || 'No interaction history available'
+        ];
+      });
+      
+      const csvRows = [headers, ...exportRows].map(row => {
+        return row.map(cell => {
+          const str = String(cell).replace(/"/g, '""');
+          return `"${str}"`;
+        }).join(',');
+      }).join('\n');
+      
+      const blob = new Blob(['\uFEFF' + csvRows], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      const timestamp = new Date();
+      const dateStr = timestamp.toISOString().split('T')[0];
+      const fileName = `Insurance_CRM_Export_${dateStr}.csv`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      const totalCalls = data.reduce((sum, item) => {
+        const disp = getDisposition(item.policy);
+        return sum + (disp.history || []).length;
+      }, 0);
+      
+      alert(`✅ Export Successful!\n\n📊 Summary:\n• Total Leads: ${data.length}\n• Total Interactions: ${totalCalls}\n• File: ${fileName}\n\n✨ Export includes complete disposition logs with date, time, status, notes, and callbacks for each customer interaction.`);
+    }
+
+    function handleBackupRestore(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      if (!confirm('⚠️ Restore from backup?\n\nThis will replace ALL current data with the backup data.\n\nAre you sure you want to continue?')) {
+        event.target.value = '';
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const text = e.target.result;
+          const rows = text.split('\n').map(row => {
+            const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            return matches ? matches.map(cell => cell.replace(/^"|"$/g, '').trim()) : [];
+          }).filter(row => row.length > 0);
+          
+          if (rows.length < 2) {
+            alert('❌ Invalid backup file format');
+            event.target.value = '';
+            return;
+          }
+          
+          const headers = rows[0].map(h => h.toLowerCase().trim());
+          
+          // Validate backup file headers
+          const requiredHeaders = ['policy no', 'customer name', 'phone number', 'plan name', 'renewal date', 
+                                   'sum insured', 'total premium', 'addon cost', 'age/dob', 
+                                   'current status', 'latest notes', 'callback date/time', 'last updated', 
+                                   'total calls', 'complete disposition log'];
+          
+          const hasAllHeaders = requiredHeaders.every(rh => 
+            headers.some(h => h === rh)
+          );
+          
+          if (!hasAllHeaders) {
+            alert('❌ This is not a valid backup file.\n\nPlease upload a file exported from this system.');
+            event.target.value = '';
+            return;
+          }
+          
+          const restoredData = [];
+          const restoredDispositions = {};
+          let successCount = 0;
+          let errorCount = 0;
+          
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length < 10) continue;
+            
+            try {
+              const getCell = (colName) => {
+                const idx = headers.indexOf(colName.toLowerCase());
+                return idx >= 0 && idx < row.length ? row[idx] : '';
+              };
+              
+              const policy = getCell('policy no');
+              const name = getCell('customer name');
+              const phone = getCell('phone number').replace(/[^0-9]/g, '');
+              const planName = getCell('plan name');
+              const renewalDate = getCell('renewal date');
+              const sumInsured = getCell('sum insured');
+              const premium = parseInt(getCell('total premium').replace(/[^0-9]/g, '')) || 0;
+              const addonCost = parseInt(getCell('addon cost').replace(/[^0-9]/g, '')) || 0;
+              const ageDob = getCell('age/dob');
+              const currentStatus = getCell('current status').toLowerCase().replace(/ /g, '_');
+              const notes = getCell('latest notes');
+              const callbackStr = getCell('callback date/time');
+              const lastUpdatedStr = getCell('last updated');
+              const dispositionLog = getCell('complete disposition log');
+              
+              if (!policy || !name || !phone) {
+                errorCount++;
+                continue;
+              }
+              
+              // Restore customer data
+              const item = {
+                sno: restoredData.length + 1,
+                policy: policy,
+                name: name,
+                phone: phone,
+                date: renewalDate,
+                plan: `${planName} - SI: ${sumInsured}`,
+                dob: ageDob,
+                amount: premium,
+                sumInsured: sumInsured,
+                addonCost: addonCost
+              };
+              
+              restoredData.push(item);
+              
+              // Restore disposition data
+              const disposition = {
+                status: currentStatus === 'pending' ? 'pending' : currentStatus,
+                notes: notes && notes !== 'No notes added' ? notes : '',
+                callback: null,
+                lastUpdated: null,
+                history: []
+              };
+              
+              // Parse callback
+              if (callbackStr && callbackStr !== 'Not Scheduled') {
+                try {
+                  const cbParts = callbackStr.split(' at ');
+                  if (cbParts.length === 2) {
+                    const cbDate = new Date(cbParts[0] + ' ' + cbParts[1]);
+                    if (!isNaN(cbDate.getTime())) {
+                      disposition.callback = cbDate.toISOString();
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Could not parse callback date:', e);
+                }
+              }
+              
+              // Parse last updated
+              if (lastUpdatedStr && lastUpdatedStr !== 'Never') {
+                try {
+                  const luParts = lastUpdatedStr.split(' at ');
+                  if (luParts.length === 2) {
+                    const luDate = new Date(luParts[0] + ' ' + luParts[1]);
+                    if (!isNaN(luDate.getTime())) {
+                      disposition.lastUpdated = luDate.toISOString();
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Could not parse last updated:', e);
+                }
+              }
+              
+              // Parse disposition history
+              if (dispositionLog && dispositionLog !== 'No interaction history available') {
+                const logEntries = dispositionLog.split(' || ');
+                
+                logEntries.forEach(entry => {
+                  try {
+                    // Format: Call 1: [05 Oct 2025 at 02:30 PM] Status: INTERESTED | Notes: text | Callback Scheduled: ...
+                    const dateTimeMatch = entry.match(/\[(.*?)\]/);
+                    const statusMatch = entry.match(/Status:\s*([^|]+)/);
+                    const notesMatch = entry.match(/Notes:\s*([^|]+)/);
+                    const callbackMatch = entry.match(/Callback Scheduled:\s*(.+)$/);
+                    
+                    if (dateTimeMatch && statusMatch) {
+                      // Parse timestamp
+                      let timestamp;
+                      try {
+                        const dtStr = dateTimeMatch[1].trim();
+                        // Convert "05 Oct 2025 at 02:30 PM" to Date
+                        const parts = dtStr.split(' at ');
+                        if (parts.length === 2) {
+                          const dateStr = parts[0];
+                          const timeStr = parts[1];
+                          timestamp = new Date(dateStr + ' ' + timeStr);
+                        } else {
+                          timestamp = new Date(dtStr);
+                        }
+                      } catch (e) {
+                        timestamp = new Date();
+                      }
+                      
+                      // Parse status
+                      const status = statusMatch[1].trim().toLowerCase().replace(/ /g, '_');
+                      
+                      // Parse notes
+                      let histNotes = '';
+                      if (notesMatch) {
+                        histNotes = notesMatch[1].trim();
+                        if (histNotes === 'No notes') {
+                          histNotes = '';
+                        }
+                      }
+                      
+                      // Create history entry
+                      const histEntry = {
+                        status: status,
+                        notes: histNotes,
+                        timestamp: timestamp.toISOString(),
+                        callback: null
+                      };
+                      
+                      // Parse callback if exists
+                      if (callbackMatch) {
+                        try {
+                          const cbStr = callbackMatch[1].trim();
+                          const cbParts = cbStr.split(' at ');
+                          if (cbParts.length === 2) {
+                            const cbDate = new Date(cbParts[0] + ' ' + cbParts[1]);
+                            if (!isNaN(cbDate.getTime())) {
+                              histEntry.callback = cbDate.toISOString();
+                            }
+                          }
+                        } catch (e) {
+                          console.warn('Could not parse callback in history:', e);
+                        }
+                      }
+                      
+                      disposition.history.push(histEntry);
+                    }
+                  } catch (e) {
+                    console.warn('Error parsing history entry:', entry, e);
+                  }
+                });
+              }
+              
+              restoredDispositions[policy] = disposition;
+              successCount++;
+              
+            } catch (err) {
+              errorCount++;
+              console.warn(`Error processing row ${i}:`, err);
+            }
+          }
+          
+          if (successCount === 0) {
+            alert('❌ No valid data found in backup file');
+            event.target.value = '';
+            return;
+          }
+          
+          // Apply restored data
+          data.length = 0;
+          data.push(...restoredData);
+          
+          dispositions = restoredDispositions;
+          
+          // Save to localStorage
+          localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(dispositions));
+          
+          // Refresh UI
+          renderCards();
+          updateCounts();
+          
+          alert(`✅ Backup Restored Successfully!\n\n📊 Summary:\n• Leads Restored: ${successCount}\n• Total Interactions: ${Object.values(dispositions).reduce((sum, d) => sum + (d.history || []).length, 0)}\n${errorCount > 0 ? `\n⚠️ ${errorCount} rows had errors and were skipped.` : ''}\n\n✨ All customer data, dispositions, notes, callbacks, and complete history have been restored.`);
+          
+        } catch (error) {
+          alert('❌ Error reading backup file: ' + error.message);
+          console.error('Backup restore error:', error);
+        }
+      };
+      
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    loadDispositions();
+    renderCards();
+    updateCounts();
   </script>
 </body>
 </html>
