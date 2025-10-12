@@ -7,6 +7,7 @@
   <title>Insurance CRM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -905,9 +906,9 @@
     </div>
 
     <script>
-      // Supabase Configuration
-      const SUPABASE_URL = 'https://eigisleuqfshwqiasvxw.supabase.co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2lzbGV1cWZzaHdxaWFzdnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMTIzMTcsImV4cCI6MjA3NTc4ODMxN30.GuZb5q_dDElI2gBuQZVFgNqH-2UHO_q9QOQ6hKknO4A';
+      // Supabase Configuration - Loaded from config.js
+      const SUPABASE_URL = CONFIG.SUPABASE_URL;
+      const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
 
       // Initialize Supabase client
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
