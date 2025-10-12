@@ -91,6 +91,33 @@
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667eea' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      background-size: 1.2em;
+      padding-right: 2.5rem;
+    }
+    select option {
+      padding: 0.5rem;
+    }
+    /* Custom styling for dropdown */
+    select::-ms-expand {
+      display: none;
+    }
+    select option:hover {
+      background-color: #f3f4f6;
+    }
+    /* Dropdown list height when opened */
+    select:not([multiple]) {
+      height: 2.5rem;
+    }
+    /* Style for option list when opened */
+    select option {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
     .gradient-bg {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
@@ -106,6 +133,57 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white !important;
       border-color: #667eea;
+    }
+    
+    /* Mobile-specific modal improvements */
+    @media (max-width: 640px) {
+      .modal {
+        padding: 0.5rem;
+      }
+      .modal-content {
+        border-radius: 1rem;
+        margin: 0.5rem;
+        max-height: calc(100vh - 1rem);
+      }
+      
+      /* Improve touch targets */
+      select, input, button {
+        min-height: 44px;
+      }
+      
+      /* Better spacing for mobile */
+      .modal .space-y-4 > * + * {
+        margin-top: 1rem;
+      }
+      
+      /* Improve dropdown visibility */
+      select:focus {
+        z-index: 10;
+        position: relative;
+      }
+      
+      /* Better scrolling on mobile */
+      .modal-content {
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      /* Larger text for better readability */
+      .modal h3 {
+        font-size: 1.125rem;
+      }
+      
+      /* Better button spacing */
+      .modal button {
+        min-width: 44px;
+        min-height: 44px;
+      }
+    }
+    
+    /* Prevent zoom on input focus on iOS */
+    @media screen and (-webkit-min-device-pixel-ratio: 0) {
+      select, input, textarea {
+        font-size: 16px;
+      }
     }
   </style>
 </head>
@@ -124,7 +202,7 @@
             <p class="text-xs text-gray-500 font-light">Care Supreme - Policy Management</p>
           </div>
         </div>
-        <button onclick="switchTab('settings')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-gray-100 border border-gray-200 transition-all text-xl">
+        <button onclick="switchTab('settings')" id="tab-settings" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-gray-100 border border-gray-200 transition-all text-xl">
           ⚙️
         </button>
       </div>
@@ -329,25 +407,7 @@
 
   <script>
     const data = [
-      {sno:1, policy:"90931696", date:"11-Oct-2025", name:"Boya Tribhuvan Teja", phone:"9885562055", plan:"Care Supreme - SI: ₹17,50,000", dob:"32 yrs", amount:7562, sumInsured:"₹17,50,000", addonCost:645},
-      {sno:2, policy:"91075578", date:"12-Oct-2025", name:"Gurparshad Singh", phone:"9501242244", plan:"Care Supreme - SI: ₹15,00,000 (4 members)", dob:"47, 44, 18, 14 yrs", amount:46627, sumInsured:"₹15,00,000", addonCost:2151},
-      {sno:3, policy:"90931524", date:"13-Oct-2025", name:"Boya Varalakshmi Dev", phone:"9885562055", plan:"Care Supreme - SI: ₹17,50,000", dob:"65 yrs", amount:105604, sumInsured:"₹17,50,000", addonCost:2796},
-      {sno:4, policy:"90936353", date:"14-Oct-2025", name:"Manu Bai Vishnoi", phone:"9167631985", plan:"Care Supreme - SI: ₹10,50,000", dob:"59 yrs", amount:19922, sumInsured:"₹10,50,000", addonCost:1704},
-      {sno:5, policy:"91374698", date:"17-Oct-2025", name:"Apurva Gupta", phone:"9535684007", plan:"Care Supreme - SI: ₹1,25,00,000 (3 members)", dob:"36, 35, 2 yrs", amount:47884, sumInsured:"₹1,25,00,000", addonCost:0},
-      {sno:6, policy:"91178196", date:"17-Oct-2025", name:"Omprakash Sahu", phone:"9893830775", plan:"Care Supreme - SI: ₹25,00,000 (4 members)", dob:"40, 37, 10, 2 yrs", amount:18158, sumInsured:"₹25,00,000", addonCost:1523},
-      {sno:7, policy:"91270653", date:"20-Oct-2025", name:"Nandala Suresh", phone:"6303951543", plan:"Care Supreme - SI: ₹35,00,000 (3 members)", dob:"46, 40, 25 yrs", amount:42827, sumInsured:"₹35,00,000", addonCost:0},
-      {sno:8, policy:"91290285", date:"21-Oct-2025", name:"Mohammed Shoaib Ul Huq", phone:"9900533007", plan:"Care Supreme - SI: ₹15,00,000 (3 members)", dob:"62, 56, 19 yrs", amount:48373, sumInsured:"₹15,00,000", addonCost:4183},
-      {sno:9, policy:"91347202", date:"22-Oct-2025", name:"Dipan Banerjee", phone:"8584022210", plan:"Care Supreme - SI: ₹15,00,000 (2 members)", dob:"59, 58 yrs", amount:32028, sumInsured:"₹15,00,000", addonCost:2737},
-      {sno:10, policy:"91540681", date:"24-Oct-2025", name:"Shashanka Sekhar Nath", phone:"7381252534", plan:"Care Supreme - SI: ₹10,50,000 (2 members)", dob:"64, 60 yrs", amount:41356, sumInsured:"₹10,50,000", addonCost:3585},
-      {sno:11, policy:"90941094", date:"24-Oct-2025", name:"Mangiiash Anant Ingale", phone:"9860359501", plan:"Care Supreme - SI: ₹15,00,000 (3 members)", dob:"52, 43, 20 yrs", amount:33753, sumInsured:"₹15,00,000", addonCost:0},
-      {sno:12, policy:"91681428", date:"26-Oct-2025", name:"Mrs Santosh", phone:"9760553925", plan:"Care Supreme - SI: ₹15,00,000", dob:"63 yrs", amount:29694, sumInsured:"₹15,00,000", addonCost:2592},
-      {sno:13, policy:"91425871", date:"26-Oct-2025", name:"Nalla Purendar", phone:"9676315560", plan:"Care Supreme - SI: ₹25,00,000 (4 members)", dob:"42, 36, 10, 6 yrs", amount:25226, sumInsured:"₹25,00,000", addonCost:0},
-      {sno:14, policy:"90934716", date:"27-Oct-2025", name:"Shyam Kishore", phone:"7090555530", plan:"Care Supreme - SI: ₹25,00,000 (4 members)", dob:"39, 30, 7, 2 yrs", amount:21358, sumInsured:"₹25,00,000", addonCost:1815},
-      {sno:15, policy:"90999914", date:"29-Oct-2025", name:"Redy V S R Krishha Kumari", phone:"9030699991", plan:"Care Supreme - SI: ₹62,50,000 (2 members)", dob:"42, 11 yrs", amount:18941, sumInsured:"₹62,50,000", addonCost:1248},
-      {sno:16, policy:"91763194", date:"29-Oct-2025", name:"Lakshmi Narasimha Rao Wunnava", phone:"9742544850", plan:"Care Supreme - SI: ₹25,00,000", dob:"89 yrs", amount:94414, sumInsured:"₹25,00,000", addonCost:8541},
-      {sno:17, policy:"91574188", date:"30-Oct-2025", name:"Dnyaneshwar Hiraman Gaikwad", phone:"9421525223", plan:"Care Supreme - SI: ₹25,00,000 (2 members)", dob:"65, 60 yrs", amount:38495, sumInsured:"₹25,00,000", addonCost:0},
-      {sno:18, policy:"91653682", date:"31-Oct-2025", name:"Shanker Venkata Wunnava", phone:"9742544850", plan:"Care Supreme - SI: ₹37,50,000 (3 members)", dob:"57, 50, 12 yrs", amount:51552, sumInsured:"₹37,50,000", addonCost:3562}
-    ];
+        ];
 
     let dispositions = {};
     const STORAGE_KEY = 'rnl_dispositions';
@@ -361,24 +421,7 @@
       const discountAmount = Math.round(basePremium * 0.05);
       const finalAmount = basePremium - discountAmount;
       
-      const message = `Hello ${item.name},
-
-This is regarding your Care Supreme policy renewal:
-
-📋 *Policy Details:*
-Policy No: ${item.policy}
-Sum Insured: ${item.sumInsured}
-Expiry Date: ${item.date}
-
-💰 *Premium Details:*
-Base Premium: ₹${basePremium.toLocaleString("en-IN")}
-
-🎉 *Sunday Exclusive Offer!*
-Pay today and get 5% OFF
-Discount: ₹${discountAmount.toLocaleString("en-IN")}
-*Final Amount: ₹${finalAmount.toLocaleString("en-IN")}*
-
-This special offer is valid only for today. Would you like to proceed with the renewal?`;
+      const message = ``;
 
       return `https://wa.me/91${item.phone}?text=${encodeURIComponent(message)}`;
     }
@@ -518,27 +561,19 @@ This special offer is valid only for today. Would you like to proceed with the r
             ` : ''}
             
             <div class="space-y-2 mb-4">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400 font-light">Policy</span>
-                <span class="text-gray-700 font-medium">${item.policy}</span>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400 font-light">Age</span>
-                <span class="text-gray-700">${item.dob}</span>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400 font-light">Premium</span>
-                <span class="text-gray-800 font-bold">₹${item.amount.toLocaleString("en-IN")}</span>
-              </div>
+            
+              ${item.sumInsured ? `<div class='flex items-center justify-between text-sm'><span class='text-gray-400 font-light'>Sum Insured</span><span class='text-gray-700'>${item.sumInsured}</span></div>` : ''}
+              ${item.premium ? `<div class='flex items-center justify-between text-sm'><span class='text-gray-400 font-light'>Premium</span><span class='text-gray-800 font-bold'>₹${item.premium.toLocaleString("en-IN")}</span></div>` : ''}
+              ${item.company ? `<div class='flex items-center justify-between text-sm'><span class='text-gray-400 font-light'>Company</span><span class='text-gray-700'>${item.company}</span></div>` : ''}
+              ${item.mainCustomFields ? Object.entries(item.mainCustomFields).map(([label, value]) => `<div class='flex items-center justify-between text-sm'><span class='text-gray-400 font-light'>${label}</span><span class='text-gray-700'>${value}</span></div>`).join('') : ''}
             </div>
             
-            <div class="bg-gray-50 rounded-xl p-3 mb-4 text-xs text-gray-600">
-              <div class="font-medium text-gray-700 mb-1">Plan Details</div>
+              <div class="bg-gray-50 rounded-xl p-3 mb-4 text-xs text-gray-600">
+              <div class="font-medium text-gray-700 mb-1">Customer Details</div>
               <div class="leading-relaxed">${item.plan}</div>
+              ${item.customerDetails ? `<div class="mt-2 text-gray-600">${item.customerDetails}</div>` : ''}
               ${item.addonCost > 0 ? `<div class="mt-2 text-purple-600 font-medium">Add-on Cost: ₹${item.addonCost.toLocaleString("en-IN")}</div>` : ''}
-            </div>
-            
-            ${disp.notes ? `
+            </div>            ${disp.notes ? `
               <div class="bg-blue-50 rounded-xl p-3 mb-4 text-xs">
                 <div class="flex gap-2">
                   <span class="text-base">📝</span>
@@ -781,106 +816,626 @@ This special offer is valid only for today. Would you like to proceed with the r
       alert('✅ Template downloaded!\n\nUse these exact column headers:\n• policy_no\n• proposer\n• phone\n• plan_name\n• renewal_date\n• total_sum_insured\n• total_premium\n• proposed_addon_cost\n• ages');
     }
 
+    // Field mapping modal HTML
+    const mappingModalHtml = `
+      <div id="mappingModal" class="modal">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl mx-2 sm:mx-4 w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+          <div class="sticky top-0 bg-white rounded-t-3xl px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center border-b border-gray-100 z-10">
+            <h3 class="text-base sm:text-lg font-bold text-gray-800">Map CSV Fields</h3>
+            <button onclick="document.getElementById('mappingModal').classList.remove('active')" class="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 text-xl sm:text-2xl transition-all">×</button>
+          </div>
+          
+          <div class="p-4 sm:p-6 space-y-4 sm:space-y-5">
+            <div class="bg-blue-50 p-3 sm:p-4 rounded-xl text-xs sm:text-sm text-blue-700">
+              Please map your CSV columns to the required fields below. Select the appropriate column for each field.
+            </div>
+            
+            <div class="grid gap-3 sm:gap-4" id="mappingFields">
+              <div class="bg-gray-50 p-3 sm:p-4 rounded-xl">
+                <h4 class="font-semibold text-gray-800 mb-3 text-sm sm:text-base">Required Fields</h4>
+                <div class="space-y-3 sm:space-y-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-2">
+                      <label class="block text-xs sm:text-sm font-medium text-gray-600">Name</label>
+                      <div class="flex gap-2 items-center">
+                        <select id="map_name" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm max-h-40 overflow-y-auto min-h-[44px]"></select>
+                        <button onclick="addMappingField('name')" class="px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">+</button>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="show_name_main" class="ml-1" checked disabled title="Name always shown" />
+                        <label for="show_name_main" class="text-xs text-gray-500">Show</label>
+                      </div>
+                      <div id="name_fields"></div>
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs sm:text-sm font-medium text-gray-600">Phone</label>
+                      <div class="flex gap-2 items-center">
+                        <select id="map_phone" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm max-h-40 overflow-y-auto min-h-[44px]"></select>
+                        <button onclick="addMappingField('phone')" class="px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">+</button>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="show_phone_main" class="ml-1" checked disabled title="Phone always shown" />
+                        <label for="show_phone_main" class="text-xs text-gray-500">Show</label>
+                      </div>
+                      <div id="phone_fields"></div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-2">
+                      <label class="block text-xs sm:text-sm font-medium text-gray-600">Sum Insured</label>
+                      <div class="flex gap-2 items-center">
+                        <select id="map_sum_insured" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm max-h-40 overflow-y-auto min-h-[44px]"></select>
+                        <button onclick="addMappingField('sum_insured')" class="px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">+</button>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="show_sum_insured_main" class="ml-1" checked />
+                        <label for="show_sum_insured_main" class="text-xs text-gray-500">Show</label>
+                      </div>
+                      <div id="sum_insured_fields"></div>
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs sm:text-sm font-medium text-gray-600">Premium</label>
+                      <div class="flex gap-2 items-center">
+                        <select id="map_premium" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm max-h-40 overflow-y-auto min-h-[44px]"></select>
+                        <button onclick="addMappingField('premium')" class="px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">+</button>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="show_premium_main" class="ml-1" checked />
+                        <label for="show_premium_main" class="text-xs text-gray-500">Show</label>
+                      </div>
+                      <div id="premium_fields"></div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-2">
+                      <label class="block text-xs sm:text-sm font-medium text-gray-600">Expiry Date</label>
+                      <div class="flex gap-2 items-center">
+                        <select id="map_expiry_date" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm max-h-40 overflow-y-auto min-h-[44px]"></select>
+                        <button onclick="addMappingField('expiry_date')" class="px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">+</button>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="show_expiry_date_main" class="ml-1" checked disabled title="Expiry always shown" />
+                        <label for="show_expiry_date_main" class="text-xs text-gray-500">Show</label>
+                      </div>
+                      <div id="expiry_date_fields"></div>
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs sm:text-sm font-medium text-gray-600">Company</label>
+                      <div class="flex gap-2 items-center">
+                        <select id="map_company" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm max-h-40 overflow-y-auto min-h-[44px]"></select>
+                        <button onclick="addMappingField('company')" class="px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">+</button>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="show_company_main" class="ml-1" checked />
+                        <label for="show_company_main" class="text-xs text-gray-500">Show</label>
+                      </div>
+                      <div id="company_fields"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-gray-50 p-3 sm:p-4 rounded-xl">
+                <h4 class="font-semibold text-gray-800 mb-3 text-sm sm:text-base">Customer Details (Optional)</h4>
+                <div class="space-y-3" id="additionalFieldsMapping"></div>
+                <button onclick="addCustomField()" class="mt-3 text-xs sm:text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 py-2 px-3 rounded-lg hover:bg-blue-50 transition-all min-h-[44px]">
+                  <span class="text-base sm:text-lg">+</span> Add Custom Field
+                </button>
+              </div>
+            </div>
+
+            <button onclick="processMappedFields()" class="w-full btn-primary text-white font-semibold py-3.5 sm:py-4 rounded-xl text-sm sm:text-base min-h-[48px]">
+              Import Data
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add mapping modal to body if not exists
+    if (!document.getElementById('mappingModal')) {
+      document.body.insertAdjacentHTML('beforeend', mappingModalHtml);
+    }
+
+    // CSV import related variables and functions
+    (() => {
+      let csvData = null;
+      let csvHeaders = null;
+      let additionalFields = [];
+      let selectedOptions = new Set();
+      let fieldMappings = {
+        name: [],
+        phone: [],
+        sum_insured: [],
+        premium: [],
+        expiry_date: [],
+        company: []
+      };
+
+      // Function to update available options in all selects
+      function updateAvailableOptions() {
+        window.updateAvailableOptions = updateAvailableOptions;
+        // Clear selected options set
+        selectedOptions.clear();
+        
+        // Collect all selected values
+        const selects = ['map_name', 'map_phone', 'map_sum_insured', 'map_premium', 'map_expiry_date', 'map_company'];
+        selects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          if (select && select.value) {
+            selectedOptions.add(select.value);
+          }
+        });
+
+        // Check additional fields
+        Object.values(fieldMappings).flat().forEach(mappingId => {
+          const select = document.getElementById(mappingId);
+          if (select && select.value) {
+            selectedOptions.add(select.value);
+          }
+        });
+
+        // Check custom fields
+        additionalFields.forEach(fieldId => {
+          const select = document.getElementById(`${fieldId}_column`);
+          if (select && select.value) {
+            selectedOptions.add(select.value);
+          }
+        });
+
+        // Update options in all selects
+        function updateSelectOptions(select) {
+          const currentValue = select.value;
+          const options = ['<option value="">Select Column</option>'];
+          
+          if (csvHeaders) {
+            csvHeaders.forEach(header => {
+              // Show the option if it's either not selected anywhere, or it's the current value of this select
+              if (!selectedOptions.has(header) || header === currentValue) {
+                options.push(`<option value="${header}">${header}</option>`);
+              }
+            });
+          }
+          
+          select.innerHTML = options.join('');
+          select.value = currentValue; // Restore the current value
+        }
+
+        // Update main selects
+        selects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          if (select) {
+            updateSelectOptions(select);
+          }
+        });
+
+        // Update additional field selects
+        Object.values(fieldMappings).flat().forEach(mappingId => {
+          const select = document.getElementById(mappingId);
+          if (select) {
+            updateSelectOptions(select);
+          }
+        });
+
+        // Update custom field selects
+        additionalFields.forEach(fieldId => {
+          const select = document.getElementById(`${fieldId}_column`);
+          if (select) {
+            updateSelectOptions(select);
+          }
+        });
+      }
+
+      window.addMappingField = function(fieldType) {
+        const container = document.getElementById(`${fieldType}_fields`) || document.getElementById(`map_${fieldType}`).parentElement;
+        const mappingId = `${fieldType}_${Date.now()}`;
+        
+        const select = document.createElement('div');
+        select.className = 'flex gap-2 mb-2';
+        select.innerHTML = `
+          <select id="${mappingId}" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm min-h-[44px]" onchange="updateAvailableOptions()">
+            <option value="">Select Column</option>
+            ${csvHeaders ? csvHeaders.filter(h => !selectedOptions.has(h)).map(h => `<option value="${h}">${h}</option>`).join('') : ''}
+          </select>
+          <button onclick="removeMappingField('${mappingId}')" class="px-3 py-2.5 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">
+            ×
+          </button>
+        `;
+        
+        if (container.tagName === 'DIV') {
+          container.appendChild(select);
+        } else {
+          const parentDiv = document.createElement('div');
+          parentDiv.id = `${fieldType}_fields`;
+          parentDiv.className = 'space-y-2';
+          
+          // Move the original select into the new container
+          const originalContent = container.innerHTML;
+          container.innerHTML = '';
+          parentDiv.innerHTML = `<div class="flex gap-2 mb-2">${originalContent}</div>`;
+          parentDiv.appendChild(select);
+          
+          container.parentElement.appendChild(parentDiv);
+        }
+        
+        // Add to field mappings
+        if (!fieldMappings[fieldType]) {
+          fieldMappings[fieldType] = [];
+        }
+        fieldMappings[fieldType].push(mappingId);
+      };
+
+      window.removeMappingField = function(mappingId) {
+        const element = document.getElementById(mappingId);
+        const selectedValue = element?.value;
+        
+        if (element && element.parentElement) {
+          element.parentElement.remove();
+        }
+        
+        // Remove from field mappings
+        for (const [fieldType, mappings] of Object.entries(fieldMappings)) {
+          const index = mappings.indexOf(mappingId);
+          if (index !== -1) {
+            mappings.splice(index, 1);
+            break;
+          }
+        }
+
+        // Update available options after removing a field
+        updateAvailableOptions();
+      };
+
+      window.addCustomField = function() {
+        const container = document.getElementById('additionalFieldsMapping');
+        const fieldId = 'custom_' + Date.now();
+        
+        // Filter out already selected options
+        const availableHeaders = csvHeaders ? csvHeaders.filter(h => !selectedOptions.has(h)) : [];
+        
+        const fieldHtml = `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start sm:items-center space-y-2 sm:space-y-0" id="${fieldId}_container">
+            <div class="space-y-1">
+              <input type="text" placeholder="Field Label" class="w-full px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm min-h-[44px]" 
+                id="${fieldId}_label">
+            </div>
+            <div class="space-y-2">
+              <div class="flex gap-2 items-center">
+                <select class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm min-h-[44px]" 
+                        id="${fieldId}_column" 
+                        onchange="updateAvailableOptions()">
+                  <option value="">Select Column</option>
+                  ${availableHeaders.map(h => `<option value="${h}">${h}</option>`).join('')}
+                </select>
+                <button onclick="removeCustomField('${fieldId}')" 
+                  class="px-3 py-2.5 sm:py-2 text-red-500 hover:bg-red-50 rounded-lg text-xs sm:text-sm min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0">×</button>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="show_custom_main_${fieldId}" class="ml-1" />
+                <label for="show_custom_main_${fieldId}" class="text-xs text-gray-500">Show</label>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', fieldHtml);
+        additionalFields.push(fieldId);
+        
+        // Add this field's select to the tracking
+        fieldMappings['custom'] = fieldMappings['custom'] || [];
+        fieldMappings['custom'].push(`${fieldId}_column`);
+      };
+
+      window.removeCustomField = function(fieldId) {
+        const container = document.getElementById(`${fieldId}_container`);
+        const select = document.getElementById(`${fieldId}_column`);
+        
+        // Remove from fieldMappings
+        if (fieldMappings['custom']) {
+          const index = fieldMappings['custom'].indexOf(`${fieldId}_column`);
+          if (index !== -1) {
+            fieldMappings['custom'].splice(index, 1);
+          }
+        }
+        
+        // Remove from additionalFields
+        const addIndex = additionalFields.indexOf(fieldId);
+        if (addIndex !== -1) {
+          additionalFields.splice(addIndex, 1);
+        }
+        
+        // Remove the container
+        if (container) {
+          container.remove();
+        }
+        
+        // Update available options
+        updateAvailableOptions();
+      };
+
+      window.processMappedFields = function() {
+        // Get values from all mapped fields
+        const mapping = {};
+        const multiMapping = {};
+        
+        for (const [fieldType, mappingIds] of Object.entries(fieldMappings)) {
+          const mainEl = document.getElementById(`map_${fieldType}`);
+          const mainValue = mainEl ? mainEl.value : '';
+          if (!mainValue) {
+            const additionalValues = mappingIds
+              .map(id => {
+                const el = document.getElementById(id);
+                return el ? el.value : '';
+              })
+              .filter(Boolean);
+            
+            if (additionalValues.length === 0) {
+              mapping[fieldType] = '';
+            } else {
+              mapping[fieldType] = additionalValues[0];
+              if (additionalValues.length > 1) {
+                multiMapping[fieldType] = additionalValues.slice(1);
+              }
+            }
+          } else {
+            mapping[fieldType] = mainValue;
+            const additionalValues = mappingIds
+              .map(id => {
+                const el = document.getElementById(id);
+                return el ? el.value : '';
+              })
+              .filter(Boolean);
+            if (additionalValues.length > 0) {
+              multiMapping[fieldType] = additionalValues;
+            }
+          }
+        }
+
+        // Validate required fields
+        const missingFields = [];
+        for (const [field, value] of Object.entries(mapping)) {
+          if (!value) missingFields.push(field.replace('_', ' '));
+        }
+
+        if (missingFields.length > 0) {
+          alert(`❌ Please map all required fields:\n\n${missingFields.join('\n')}`);
+          return;
+        }
+
+        // Get additional field mappings
+        const additionalMappings = {};
+        additionalFields.forEach(fieldId => {
+          const labelEl = document.getElementById(`${fieldId}_label`);
+          const columnEl = document.getElementById(`${fieldId}_column`);
+          if (labelEl && columnEl && labelEl.value && columnEl.value) {
+            additionalMappings[labelEl.value] = columnEl.value;
+          }
+        });
+
+        // Process the CSV data with mappings
+        const newData = [];
+        let errorCount = 0;
+
+        for (let i = 1; i < csvData.length; i++) {
+          const row = csvData[i];
+          if (!row || row.length === 0) continue;
+
+          try {
+            const getCell = (columnName) => {
+              const idx = csvHeaders.indexOf(columnName);
+              return idx >= 0 ? (row[idx] ? row[idx].trim() : '') : '';
+            };
+
+            // Get mapped values (avoid duplicate columns, preserve order)
+            const getCombinedValue = (mainMapping, additionalMappings = []) => {
+              const allMappings = [mainMapping, ...additionalMappings].filter(Boolean);
+              // Remove duplicates
+              const uniqueMappings = [...new Set(allMappings)];
+              const values = uniqueMappings.map(m => getCell(m)).filter(Boolean);
+              return values.join(' ').replace(/\s+/g, ' ').trim();
+            };
+
+            const name = getCombinedValue(mapping.name, multiMapping.name || []);
+            console.log('DEBUG name:', name, 'from', mapping.name, multiMapping.name);
+            const phone = getCombinedValue(mapping.phone, multiMapping.phone || []).replace(/[^0-9]/g, '');
+            const sumInsured = getCombinedValue(mapping.sum_insured, multiMapping.sum_insured || []);
+            const premium = parseInt(getCombinedValue(mapping.premium, multiMapping.premium || []).replace(/[^0-9]/g, '')) || 0;
+            const expiryDate = getCombinedValue(mapping.expiry_date, multiMapping.expiry_date || []);
+            const company = getCombinedValue(mapping.company, multiMapping.company || []);
+
+            // Skip if essential data is missing
+            if (!name || !phone) {
+              errorCount++;
+              continue;
+            }
+
+            // Build mainFields and customerDetails based on checkboxes
+            const mainFields = {
+              sumInsured: document.getElementById('show_sum_insured_main')?.checked ? sumInsured : null,
+              premium: document.getElementById('show_premium_main')?.checked ? premium : null,
+              company: document.getElementById('show_company_main')?.checked ? company : null,
+            };
+            // Custom fields
+            const mainCustomFields = {};
+            const customerDetailsArr = [];
+            for (const [label, column] of Object.entries(additionalMappings)) {
+              const value = getCell(column);
+              const fieldId = additionalFields.find(fid => {
+                const lbl = document.getElementById(`${fid}_label`);
+                return lbl && lbl.value === label;
+              });
+              if (fieldId && document.getElementById(`show_custom_main_${fieldId}`)?.checked) {
+                mainCustomFields[label] = value;
+              } else if (value) {
+                customerDetailsArr.push(`${label}: ${value}`);
+              }
+            }
+            const item = {
+              sno: newData.length + 1,
+              policy: getCell(mapping.policy_no) || `POL${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+              name: name,
+              phone: phone,
+              date: expiryDate,
+              sumInsured: mainFields.sumInsured,
+              premium: mainFields.premium,
+              company: mainFields.company,
+              mainCustomFields,
+              amount: premium,
+              addonCost: 0,
+              customerDetails: customerDetailsArr.join(' | ')
+            };
+
+            newData.push(item);
+          } catch (err) {
+            errorCount++;
+            console.warn(`Error processing row ${i}:`, err);
+          }
+        }
+
+        if (newData.length === 0) {
+          alert('❌ No valid data found in CSV file');
+          return;
+        }
+
+        const confirmMsg = `Import ${newData.length} new leads?\n\n⚠️ This will replace your current ${data.length} leads.\n${errorCount > 0 ? `\n${errorCount} rows had errors and were skipped.` : ''}`;
+
+        if (!confirm(confirmMsg)) {
+          return;
+        }
+
+        // Update the data
+        data.length = 0;
+        data.push(...newData);
+        localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data));
+
+        // Close mapping modal and refresh UI
+        document.getElementById('mappingModal').classList.remove('active');
+        renderCards();
+        updateCounts();
+
+        alert(`✅ Successfully imported ${newData.length} leads!${errorCount > 0 ? `\n⚠️ ${errorCount} rows were skipped due to errors.` : ''}`);
+      };
+
+      window.handleFileUpload = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const text = e.target.result;
+              csvData = text.split('\n').map(row => {
+                // Split on comma, trim each cell, remove quotes
+                return row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim());
+              }).filter(row => row.length > 0);
+
+              if (csvData.length < 2) {
+                alert('❌ CSV file must have headers and at least one data row');
+                return;
+              }
+
+              csvHeaders = csvData[0].map(h => h.trim());
+              additionalFields = []; // Reset additional fields
+
+              // Populate mapping dropdowns
+              const selects = ['map_name', 'map_phone', 'map_sum_insured', 'map_premium', 'map_expiry_date', 'map_company'];
+              selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Select Column</option>' +
+                  csvHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+                // Add change event listener
+                select.addEventListener('change', () => {
+                  updateAvailableOptions();
+                });
+              });
+
+              // Show mapping modal
+              document.getElementById('mappingModal').classList.add('active');
+            } catch (error) {
+              alert('❌ Error processing CSV file: ' + error.message);
+              console.error('CSV processing error:', error);
+            }
+          };
+
+          reader.onerror = function() {
+            alert('❌ Error reading file');
+            console.error('FileReader error:', reader.error);
+          };
+
+          reader.readAsText(file);
+        } catch (error) {
+          alert('❌ Error handling file: ' + error.message);
+          console.error('File handling error:', error);
+        } finally {
+          event.target.value = '';
+        }
+      };
+    })();
+
     function handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const text = e.target.result;
-          const rows = text.split('\n').map(row => {
-            const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            return matches ? matches.map(cell => cell.replace(/^"|"$/g, '').trim()) : [];
-          }).filter(row => row.length > 0);
-          
-          if (rows.length < 2) {
-            alert('❌ CSV file must have headers and at least one data row');
-            return;
-          }
-          
-          const headers = rows[0].map(h => h.toLowerCase().trim());
-          
-          const requiredCols = ['policy_no', 'proposer', 'phone', 'plan_name', 'renewal_date', 'total_sum_insured', 'total_premium', 'proposed_addon_cost'];
-          const missingCols = requiredCols.filter(col => !headers.includes(col));
-          
-          if (missingCols.length > 0) {
-            alert(`❌ Missing required columns: ${missingCols.join(', ')}\n\nPlease download the sample template and use the correct format.`);
-            return;
-          }
-          
-          const newData = [];
-          let errorCount = 0;
-          
-          for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (row.length < headers.length || !row[0]) continue;
-            
-            try {
-              const getCell = (colName) => {
-                const idx = headers.indexOf(colName.toLowerCase());
-                return idx >= 0 ? row[idx] : '';
-              };
-              
-              const premium = parseInt(getCell('total_premium').replace(/[^0-9]/g, '')) || 0;
-              const addonCost = parseInt(getCell('proposed_addon_cost').replace(/[^0-9]/g, '')) || 0;
-              const sumInsured = getCell('total_sum_insured');
-              const planName = getCell('plan_name');
-              
-              const item = {
-                sno: newData.length + 1,
-                policy: getCell('policy_no'),
-                name: getCell('proposer'),
-                phone: getCell('phone').replace(/[^0-9]/g, ''),
-                date: getCell('renewal_date'),
-                plan: `${planName} - SI: ${sumInsured}`,
-                dob: getCell('ages') || 'N/A',
-                amount: premium,
-                sumInsured: sumInsured,
-                addonCost: addonCost
-              };
-              
-              if (!item.policy || !item.name || !item.phone) {
-                errorCount++;
-                continue;
-              }
-              
-              newData.push(item);
-            } catch (err) {
-              errorCount++;
-              console.warn(`Error processing row ${i}:`, err);
+
+      try {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const text = e.target.result;
+            csvData = text.split('\n').map(row => {
+              const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+              return matches ? matches.map(cell => cell.replace(/^"|"$/g, '').trim()) : [];
+            }).filter(row => row.length > 0);
+
+            if (csvData.length < 2) {
+              alert('❌ CSV file must have headers and at least one data row');
+              return;
             }
+
+            csvHeaders = csvData[0].map(h => h.trim());
+            additionalFields = []; // Reset additional fields
+
+            // Populate mapping dropdowns
+            const selects = ['map_name', 'map_phone', 'map_sum_insured', 'map_premium', 'map_expiry_date', 'map_company'];
+            selects.forEach(selectId => {
+              const select = document.getElementById(selectId);
+              select.innerHTML = '<option value="">Select Column</option>' +
+                csvHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+            });
+
+            // Show mapping modal
+            document.getElementById('mappingModal').classList.add('active');
+          } catch (error) {
+            alert('❌ Error processing CSV file: ' + error.message);
+            console.error('CSV processing error:', error);
           }
+        };
+
+        reader.onerror = function() {
+          alert('❌ Error reading file');
+          console.error('FileReader error:', reader.error);
+        };
+
+        reader.readAsText(file);
+      } catch (error) {
+        alert('❌ Error handling file: ' + error.message);
+        console.error('File handling error:', error);
+      } finally {
+        event.target.value = '';
+      }
           
-          if (newData.length === 0) {
-            alert('❌ No valid data found in CSV file');
-            return;
-          }
-          
-          const confirmMsg = `Import ${newData.length} new leads?\n\n⚠️ This will replace your current ${data.length} leads.\n${errorCount > 0 ? `\n${errorCount} rows had errors and were skipped.` : ''}`;
-          
-          if (!confirm(confirmMsg)) {
-            return;
-          }
-          
-          data.length = 0;
-          data.push(...newData);
-          
-          localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data));
-          
-          renderCards();
-          updateCounts();
-          
-          alert(`✅ Successfully imported ${newData.length} leads!${errorCount > 0 ? `\n⚠️ ${errorCount} rows were skipped due to errors.` : ''}`);
-        } catch (error) {
-          alert('❌ Error reading CSV file: ' + error.message);
-          console.error('Import error:', error);
-        }
-      };
-      
-      reader.readAsText(file);
-      event.target.value = '';
     }
+
+    // Load initial data and initialize UI
+    loadDispositions();
+    renderCards();
+    updateCounts();
+    
+    // Initialize mapping modal
+    if (!document.getElementById('mappingModal')) {
+      document.body.insertAdjacentHTML('beforeend', mappingModalHtml);
+    }
+    
 
     function exportData() {
       if (data.length === 0) {
@@ -1275,6 +1830,11 @@ This special offer is valid only for today. Would you like to proceed with the r
     loadDispositions();
     renderCards();
     updateCounts();
+    
+    // Initialize mapping modal
+    if (!document.getElementById('mappingModal')) {
+      document.body.insertAdjacentHTML('beforeend', mappingModalHtml);
+    }
   </script>
 </body>
 </html>
