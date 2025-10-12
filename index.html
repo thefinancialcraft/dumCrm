@@ -414,7 +414,29 @@
     const DATA_STORAGE_KEY = 'rnl_customer_data';
     let currentTab = 'all';
     let currentDoneFilter = 'all';
-    let currentPolicy = null;
+    let currentLeadId = null;
+
+    // Function to generate unique lead ID
+    function generateLeadId() {
+      return 'LEAD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6).toUpperCase();
+    }
+
+    // Function to get lead ID from existing data or generate new one
+    function getOrCreateLeadId(item) {
+      if (item.leadId) {
+        return item.leadId;
+      }
+      // Generate lead ID based on phone + name combination for existing data
+      const baseId = 'LEAD_' + (item.phone + '_' + item.name).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const existingIds = data.map(d => d.leadId).filter(Boolean);
+      let leadId = baseId;
+      let counter = 1;
+      while (existingIds.includes(leadId)) {
+        leadId = baseId + '_' + counter;
+        counter++;
+      }
+      return leadId;
+    }
 
     function getWhatsAppLink(item) {
       const basePremium = item.amount - item.addonCost;
@@ -426,15 +448,15 @@
       return `https://wa.me/91${item.phone}?text=${encodeURIComponent(message)}`;
     }
 
-    function getDisposition(policy) {
-      const d = dispositions[policy];
+    function getDisposition(leadId) {
+      const d = dispositions[leadId];
       if (!d) return { status: 'pending', notes: '', callback: null, history: [] };
       if (!Array.isArray(d.history)) d.history = [];
       return d;
     }
 
-    function setDisposition(policy, data) {
-      dispositions[policy] = data;
+    function setDisposition(leadId, data) {
+      dispositions[leadId] = data;
       saveDispositions();
       renderCards();
       updateCounts();
@@ -458,6 +480,30 @@
           if (Array.isArray(parsed) && parsed.length > 0) {
             data.length = 0;
             data.push(...parsed);
+            
+            // Migrate existing data to use lead IDs
+            let needsMigration = false;
+            data.forEach(item => {
+              if (!item.leadId) {
+                item.leadId = getOrCreateLeadId(item);
+                needsMigration = true;
+              }
+            });
+            
+            // Migrate dispositions from policy-based to leadId-based
+            const newDispositions = {};
+            Object.keys(dispositions).forEach(key => {
+              const item = data.find(d => d.policy === key || d.leadId === key);
+              if (item && item.leadId) {
+                newDispositions[item.leadId] = dispositions[key];
+              }
+            });
+            dispositions = newDispositions;
+            
+            if (needsMigration) {
+              saveDispositions();
+              localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data));
+            }
           }
         }
       } catch (e) {
@@ -494,7 +540,12 @@
       container.innerHTML = '';
       
       let filtered = data.filter(item => {
-        const disp = getDisposition(item.policy);
+        // Ensure leadId exists
+        if (!item.leadId) {
+          item.leadId = getOrCreateLeadId(item);
+        }
+        
+        const disp = getDisposition(item.leadId);
         const matchesSearch = !searchTerm || 
           item.name.toLowerCase().includes(searchTerm) ||
           item.policy.includes(searchTerm) ||
@@ -523,8 +574,8 @@
 
       if (currentTab === 'contacted') {
         filtered.sort((a, b) => {
-          const dispA = getDisposition(a.policy);
-          const dispB = getDisposition(b.policy);
+          const dispA = getDisposition(a.leadId);
+          const dispB = getDisposition(b.leadId);
           const timeA = dispA.lastUpdated ? new Date(dispA.lastUpdated).getTime() : 0;
           const timeB = dispB.lastUpdated ? new Date(dispB.lastUpdated).getTime() : 0;
           return timeB - timeA;
@@ -532,7 +583,7 @@
       }
 
       filtered.forEach(item => {
-        const disp = getDisposition(item.policy);
+        const disp = getDisposition(item.leadId);
         const hasCallback = disp.callback && new Date(disp.callback) > new Date();
         
         const card = document.createElement("div");
@@ -592,7 +643,7 @@
                 class="btn-whatsapp text-white font-semibold py-3 px-2 rounded-xl text-xs text-center flex items-center justify-center">
                 💬 WhatsApp
               </a>
-              <button onclick="openModal('${item.policy}')" 
+              <button onclick="openModal('${item.leadId}')" 
                 class="btn-primary text-white font-semibold py-3 px-2 rounded-xl text-xs">
                 Update
               </button>
@@ -648,12 +699,19 @@
 
     function updateSettingsStats() {
       const all = data.length;
-      const pending = data.filter(item => getDisposition(item.policy).status === 'pending').length;
+      const pending = data.filter(item => {
+        if (!item.leadId) item.leadId = getOrCreateLeadId(item);
+        return getDisposition(item.leadId).status === 'pending';
+      }).length;
       const contacted = data.filter(item => {
-        const status = getDisposition(item.policy).status;
+        if (!item.leadId) item.leadId = getOrCreateLeadId(item);
+        const status = getDisposition(item.leadId).status;
         return status !== 'pending' && status !== 'callback';
       }).length;
-      const callback = data.filter(item => getDisposition(item.policy).status === 'callback').length;
+      const callback = data.filter(item => {
+        if (!item.leadId) item.leadId = getOrCreateLeadId(item);
+        return getDisposition(item.leadId).status === 'callback';
+      }).length;
       
       document.getElementById('stat-total').textContent = all;
       document.getElementById('stat-contacted').textContent = contacted;
@@ -675,12 +733,19 @@
 
     function updateCounts() {
       const all = data.length;
-      const pending = data.filter(item => getDisposition(item.policy).status === 'pending').length;
+      const pending = data.filter(item => {
+        if (!item.leadId) item.leadId = getOrCreateLeadId(item);
+        return getDisposition(item.leadId).status === 'pending';
+      }).length;
       const contacted = data.filter(item => {
-        const status = getDisposition(item.policy).status;
+        if (!item.leadId) item.leadId = getOrCreateLeadId(item);
+        const status = getDisposition(item.leadId).status;
         return status !== 'pending' && status !== 'callback';
       }).length;
-      const callback = data.filter(item => getDisposition(item.policy).status === 'callback').length;
+      const callback = data.filter(item => {
+        if (!item.leadId) item.leadId = getOrCreateLeadId(item);
+        return getDisposition(item.leadId).status === 'callback';
+      }).length;
       
       document.getElementById('count-all').textContent = all;
       document.getElementById('count-pending').textContent = pending;
@@ -688,14 +753,15 @@
       document.getElementById('count-callback').textContent = callback;
     }
 
-    function openModal(policy) {
-      currentPolicy = policy;
-      const item = data.find(d => d.policy === policy);
-      const disp = getDisposition(policy);
+    function openModal(leadId) {
+      currentLeadId = leadId;
+      const item = data.find(d => d.leadId === leadId);
+      const disp = getDisposition(leadId);
       
       document.getElementById('modalCustomerInfo').innerHTML = `
         <div class="font-bold text-gray-800 text-base">${item.name}</div>
         <div class="text-xs text-gray-600 mt-2 font-light">Policy: ${item.policy}</div>
+        <div class="text-xs text-gray-500 mt-1 font-light">Lead ID: ${item.leadId}</div>
       `;
       
       document.getElementById('dispositionSelect').value = disp.status === 'pending' ? '' : disp.status;
@@ -713,11 +779,11 @@
 
     function closeModal() {
       document.getElementById('dispositionModal').classList.remove('active');
-      currentPolicy = null;
+      currentLeadId = null;
     }
 
     function saveDisposition() {
-      if (!currentPolicy) return;
+      if (!currentLeadId) return;
       
       const status = document.getElementById('dispositionSelect').value;
       const notes = document.getElementById('dispositionNotes').value;
@@ -728,7 +794,7 @@
         return;
       }
       
-      const disp = getDisposition(currentPolicy);
+      const disp = getDisposition(currentLeadId);
       disp.status = status;
       disp.notes = notes;
       disp.callback = status === 'callback' ? callback : null;
@@ -743,7 +809,7 @@
       };
       disp.history.push(entry);
 
-      setDisposition(currentPolicy, disp);
+      setDisposition(currentLeadId, disp);
       renderHistory(disp.history);
       closeModal();
     }
@@ -1272,6 +1338,7 @@
             }
             const item = {
               sno: newData.length + 1,
+              leadId: generateLeadId(),
               policy: getCell(mapping.policy_no) || `POL${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
               name: name,
               phone: phone,
@@ -1297,15 +1364,28 @@
           return;
         }
 
-        const confirmMsg = `Import ${newData.length} new leads?\n\n⚠️ This will replace your current ${data.length} leads.\n${errorCount > 0 ? `\n${errorCount} rows had errors and were skipped.` : ''}`;
+        // Check for duplicates and filter them out
+        const existingLeadIds = new Set(data.map(item => item.leadId).filter(Boolean));
+        const uniqueNewData = newData.filter(item => !existingLeadIds.has(item.leadId));
+        const duplicateCount = newData.length - uniqueNewData.length;
+
+        let confirmMsg = `Import ${uniqueNewData.length} new leads?\n\n`;
+        confirmMsg += `📊 Current leads: ${data.length}\n`;
+        confirmMsg += `➕ New leads to add: ${uniqueNewData.length}\n`;
+        if (duplicateCount > 0) {
+          confirmMsg += `⚠️ Duplicates skipped: ${duplicateCount}\n`;
+        }
+        if (errorCount > 0) {
+          confirmMsg += `❌ Errors skipped: ${errorCount}\n`;
+        }
+        confirmMsg += `\n✅ Existing data will remain unchanged.`;
 
         if (!confirm(confirmMsg)) {
           return;
         }
 
-        // Update the data
-        data.length = 0;
-        data.push(...newData);
+        // Append new data to existing data
+        data.push(...uniqueNewData);
         localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data));
 
         // Close mapping modal and refresh UI
@@ -1313,7 +1393,17 @@
         renderCards();
         updateCounts();
 
-        alert(`✅ Successfully imported ${newData.length} leads!${errorCount > 0 ? `\n⚠️ ${errorCount} rows were skipped due to errors.` : ''}`);
+        let successMsg = `✅ Successfully imported ${uniqueNewData.length} new leads!\n\n`;
+        successMsg += `📊 Total leads now: ${data.length}\n`;
+        if (duplicateCount > 0) {
+          successMsg += `⚠️ ${duplicateCount} duplicates were skipped.\n`;
+        }
+        if (errorCount > 0) {
+          successMsg += `❌ ${errorCount} rows had errors and were skipped.\n`;
+        }
+        successMsg += `\n✨ Existing data preserved successfully.`;
+        
+        alert(successMsg);
       };
 
       window.handleFileUpload = function(event) {
@@ -1444,25 +1534,17 @@
       }
 
       const headers = [
-        'Policy No',
-        'Customer Name', 
-        'Phone Number',
-        'Plan Name',
-        'Renewal Date',
-        'Sum Insured',
-        'Total Premium',
-        'Addon Cost',
-        'Age/DOB',
-        'Current Status',
-        'Latest Notes',
-        'Callback Date/Time',
-        'Last Updated',
-        'Total Calls',
-        'Complete Disposition Log'
+        'Lead ID',
+        'Phone No',
+        'Name',
+        'Expiry Date',
+        'Customer Details',
+        'Utilities'
       ];
       
       const exportRows = data.map(item => {
-        const disp = getDisposition(item.policy);
+        if (!item.leadId) item.leadId = getOrCreateLeadId(item);
+        const disp = getDisposition(item.leadId);
         const callCount = (disp.history || []).length;
         
         const dispositionLog = (disp.history || []).map((h, idx) => {
@@ -1531,22 +1613,53 @@
           });
         }
         
+        // Create Customer Details string
+        const customerDetails = [];
+        
+        // Add policy information
+        if (item.policy) customerDetails.push(`Policy No - ${item.policy}`);
+        if (item.plan) customerDetails.push(`Plan - ${item.plan.split(' - SI:')[0] || item.plan}`);
+        if (item.sumInsured) customerDetails.push(`Sum Insured - ${item.sumInsured}`);
+        if (item.amount) customerDetails.push(`Total Premium - ₹${item.amount.toLocaleString("en-IN")}`);
+        if (item.addonCost && item.addonCost > 0) customerDetails.push(`Addon Cost - ₹${item.addonCost.toLocaleString("en-IN")}`);
+        if (item.company) customerDetails.push(`Company - ${item.company}`);
+        if (item.dob) customerDetails.push(`Age/DOB - ${item.dob}`);
+        
+        // Add custom fields
+        if (item.mainCustomFields) {
+          Object.entries(item.mainCustomFields).forEach(([key, value]) => {
+            if (value) customerDetails.push(`${key} - ${value}`);
+          });
+        }
+        
+        // Add customer details from the item
+        if (item.customerDetails) {
+          const details = item.customerDetails.split(' | ');
+          details.forEach(detail => {
+            if (detail && detail.trim()) customerDetails.push(detail.trim());
+          });
+        }
+        
+        const customerDetailsStr = customerDetails.join('\n');
+        
+        // Create Utilities string
+        const utilities = [];
+        utilities.push(`Current Status - ${currentStatus}`);
+        if (disp.notes) utilities.push(`Latest Notes - ${disp.notes}`);
+        utilities.push(`Callback - ${callbackInfo}`);
+        utilities.push(`Last Updated - ${lastUpdated}`);
+        utilities.push(`Total Calls - ${callCount}`);
+        utilities.push(`Disposition Log - ${dispositionLog || 'No interaction history available'}`);
+        
+        const utilitiesStr = utilities.join('\n');
+
         return [
-          item.policy,
-          item.name,
+          item.leadId,
           item.phone,
-          item.plan.split(' - SI:')[0] || item.plan,
+          item.name,
           item.date,
-          item.sumInsured,
-          item.amount,
-          item.addonCost || 0,
-          item.dob,
-          currentStatus,
-          disp.notes || 'No notes added',
-          callbackInfo,
-          lastUpdated,
-          callCount,
-          dispositionLog || 'No interaction history available'
+          customerDetailsStr,
+          utilitiesStr
         ];
       });
       
@@ -1607,10 +1720,7 @@
           const headers = rows[0].map(h => h.toLowerCase().trim());
           
           // Validate backup file headers
-          const requiredHeaders = ['policy no', 'customer name', 'phone number', 'plan name', 'renewal date', 
-                                   'sum insured', 'total premium', 'addon cost', 'age/dob', 
-                                   'current status', 'latest notes', 'callback date/time', 'last updated', 
-                                   'total calls', 'complete disposition log'];
+          const requiredHeaders = ['lead id', 'phone no', 'name', 'expiry date', 'customer details', 'utilities'];
           
           const hasAllHeaders = requiredHeaders.every(rh => 
             headers.some(h => h === rh)
@@ -1637,38 +1747,98 @@
                 return idx >= 0 && idx < row.length ? row[idx] : '';
               };
               
-              const policy = getCell('policy no');
-              const name = getCell('customer name');
-              const phone = getCell('phone number').replace(/[^0-9]/g, '');
-              const planName = getCell('plan name');
-              const renewalDate = getCell('renewal date');
-              const sumInsured = getCell('sum insured');
-              const premium = parseInt(getCell('total premium').replace(/[^0-9]/g, '')) || 0;
-              const addonCost = parseInt(getCell('addon cost').replace(/[^0-9]/g, '')) || 0;
-              const ageDob = getCell('age/dob');
-              const currentStatus = getCell('current status').toLowerCase().replace(/ /g, '_');
-              const notes = getCell('latest notes');
-              const callbackStr = getCell('callback date/time');
-              const lastUpdatedStr = getCell('last updated');
-              const dispositionLog = getCell('complete disposition log');
+              const leadId = getCell('lead id');
+              const phone = getCell('phone no').replace(/[^0-9]/g, '');
+              const name = getCell('name');
+              const expiryDate = getCell('expiry date');
+              const customerDetailsStr = getCell('customer details');
+              const utilitiesStr = getCell('utilities');
               
-              if (!policy || !name || !phone) {
+              if (!leadId || !name || !phone) {
                 errorCount++;
                 continue;
+              }
+              
+              // Parse customer details
+              let policy = '';
+              let planName = '';
+              let sumInsured = '';
+              let premium = 0;
+              let addonCost = 0;
+              let company = '';
+              let dob = '';
+              let mainCustomFields = {};
+              let customerDetails = '';
+              
+              if (customerDetailsStr) {
+                const details = customerDetailsStr.split('\n');
+                details.forEach(detail => {
+                  if (detail.includes('Policy No - ')) {
+                    policy = detail.replace('Policy No - ', '').trim();
+                  } else if (detail.includes('Plan - ')) {
+                    planName = detail.replace('Plan - ', '').trim();
+                  } else if (detail.includes('Sum Insured - ')) {
+                    sumInsured = detail.replace('Sum Insured - ', '').trim();
+                  } else if (detail.includes('Total Premium - ₹')) {
+                    premium = parseInt(detail.replace('Total Premium - ₹', '').replace(/,/g, '')) || 0;
+                  } else if (detail.includes('Addon Cost - ₹')) {
+                    addonCost = parseInt(detail.replace('Addon Cost - ₹', '').replace(/,/g, '')) || 0;
+                  } else if (detail.includes('Company - ')) {
+                    company = detail.replace('Company - ', '').trim();
+                  } else if (detail.includes('Age/DOB - ')) {
+                    dob = detail.replace('Age/DOB - ', '').trim();
+                  } else if (detail.includes(' - ')) {
+                    // Custom fields
+                    const parts = detail.split(' - ');
+                    if (parts.length >= 2) {
+                      const key = parts[0].trim();
+                      const value = parts.slice(1).join(' - ').trim();
+                      mainCustomFields[key] = value;
+                    }
+                  }
+                });
+              }
+              
+              // Parse utilities
+              let currentStatus = 'pending';
+              let notes = '';
+              let callbackStr = 'Not Scheduled';
+              let lastUpdatedStr = 'Never';
+              let dispositionLog = '';
+              
+              if (utilitiesStr) {
+                const utilities = utilitiesStr.split('\n');
+                utilities.forEach(util => {
+                  if (util.includes('Current Status - ')) {
+                    currentStatus = util.replace('Current Status - ', '').trim().toLowerCase().replace(/ /g, '_');
+                  } else if (util.includes('Latest Notes - ')) {
+                    notes = util.replace('Latest Notes - ', '').trim();
+                  } else if (util.includes('Callback - ')) {
+                    callbackStr = util.replace('Callback - ', '').trim();
+                  } else if (util.includes('Last Updated - ')) {
+                    lastUpdatedStr = util.replace('Last Updated - ', '').trim();
+                  } else if (util.includes('Disposition Log - ')) {
+                    dispositionLog = util.replace('Disposition Log - ', '').trim();
+                  }
+                });
               }
               
               // Restore customer data
               const item = {
                 sno: restoredData.length + 1,
-                policy: policy,
+                leadId: leadId,
+                policy: policy || `POL${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
                 name: name,
                 phone: phone,
-                date: renewalDate,
-                plan: `${planName} - SI: ${sumInsured}`,
-                dob: ageDob,
+                date: expiryDate,
+                plan: planName ? `${planName} - SI: ${sumInsured}` : 'Care Supreme',
+                dob: dob,
                 amount: premium,
                 sumInsured: sumInsured,
-                addonCost: addonCost
+                addonCost: addonCost,
+                company: company,
+                mainCustomFields: mainCustomFields,
+                customerDetails: customerDetails
               };
               
               restoredData.push(item);
@@ -1676,7 +1846,7 @@
               // Restore disposition data
               const disposition = {
                 status: currentStatus === 'pending' ? 'pending' : currentStatus,
-                notes: notes && notes !== 'No notes added' ? notes : '',
+                notes: notes && notes !== 'No notes added' && notes !== 'No notes' ? notes : '',
                 callback: null,
                 lastUpdated: null,
                 history: []
@@ -1786,7 +1956,7 @@
                 });
               }
               
-              restoredDispositions[policy] = disposition;
+              restoredDispositions[leadId] = disposition;
               successCount++;
               
             } catch (err) {
