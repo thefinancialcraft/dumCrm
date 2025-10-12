@@ -1712,34 +1712,64 @@
           }).filter(row => row.length > 0);
           
           if (rows.length < 2) {
-            alert('❌ Invalid backup file format');
+            alert('❌ Invalid backup file format\n\nFile must have at least 2 rows (headers + data)');
             event.target.value = '';
             return;
           }
           
           const headers = rows[0].map(h => h.toLowerCase().trim());
           
-          // Validate backup file headers
-          const requiredHeaders = ['lead id', 'phone no', 'name', 'expiry date', 'customer details', 'utilities'];
+          // Debug information
+          console.log('Backup file headers found:', headers);
+          console.log('Total rows in file:', rows.length);
           
-          const hasAllHeaders = requiredHeaders.every(rh => 
-            headers.some(h => h === rh)
-          );
+          // Check for new format first, then fallback to old format
+          const newFormatHeaders = ['lead id', 'phone no', 'name', 'expiry date', 'customer details', 'utilities'];
+          const oldFormatHeaders = ['lead id', 'policy no', 'customer name', 'phone number', 'plan name', 'renewal date', 'sum insured', 'total premium', 'addon cost', 'age/dob', 'current status', 'latest notes', 'callback date/time', 'last updated', 'total calls', 'complete disposition log'];
           
-          if (!hasAllHeaders) {
-            alert('❌ This is not a valid backup file.\n\nPlease upload a file exported from this system.');
+          const foundNewHeaders = newFormatHeaders.filter(rh => headers.some(h => h === rh));
+          const foundOldHeaders = oldFormatHeaders.filter(rh => headers.some(h => h === rh));
+          
+          console.log('Required headers (new format):', newFormatHeaders);
+          console.log('Required headers (old format):', oldFormatHeaders);
+          console.log('Found headers (new format):', foundNewHeaders);
+          console.log('Found headers (old format):', foundOldHeaders);
+          
+          let isNewFormat = false;
+          let isOldFormat = false;
+          
+          if (foundNewHeaders.length >= 4) { // At least Lead ID, Phone, Name, Expiry Date
+            isNewFormat = true;
+          } else if (foundOldHeaders.length >= 10) { // At least most old format headers
+            isOldFormat = true;
+          }
+          
+          if (!isNewFormat && !isOldFormat) {
+            const missingNewHeaders = newFormatHeaders.filter(rh => !headers.some(h => h === rh));
+            const missingOldHeaders = oldFormatHeaders.filter(rh => !headers.some(h => h === rh));
+            
+            alert(`❌ Invalid backup file format.\n\nMissing headers for new format: ${missingNewHeaders.join(', ')}\nMissing headers for old format: ${missingOldHeaders.join(', ')}\n\nFound headers: ${headers.join(', ')}\n\nPlease upload a file exported from this system.`);
             event.target.value = '';
             return;
           }
+          
+          console.log(`Using ${isNewFormat ? 'new' : 'old'} backup format`);
           
           const restoredData = [];
           const restoredDispositions = {};
           let successCount = 0;
           let errorCount = 0;
           
+          console.log('Starting to process data rows...');
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            if (row.length < 10) continue;
+            console.log(`Processing row ${i}:`, row);
+            
+            if (row.length < 6) {
+              console.warn(`Row ${i} has insufficient columns (${row.length}), skipping`);
+              errorCount++;
+              continue;
+            }
             
             try {
               const getCell = (colName) => {
@@ -1747,17 +1777,51 @@
                 return idx >= 0 && idx < row.length ? row[idx] : '';
               };
               
-              const leadId = getCell('lead id');
-              const phone = getCell('phone no').replace(/[^0-9]/g, '');
-              const name = getCell('name');
-              const expiryDate = getCell('expiry date');
-              const customerDetailsStr = getCell('customer details');
-              const utilitiesStr = getCell('utilities');
+              let leadId, phone, name, expiryDate, customerDetailsStr, utilitiesStr;
+              
+              if (isNewFormat) {
+                // New format processing
+                leadId = getCell('lead id');
+                phone = getCell('phone no').replace(/[^0-9]/g, '');
+                name = getCell('name');
+                expiryDate = getCell('expiry date');
+                customerDetailsStr = getCell('customer details');
+                utilitiesStr = getCell('utilities');
+              } else {
+                // Old format processing
+                leadId = getCell('lead id');
+                phone = getCell('phone number').replace(/[^0-9]/g, '');
+                name = getCell('customer name');
+                expiryDate = getCell('renewal date');
+                
+                // Reconstruct customer details from old format
+                const policy = getCell('policy no');
+                const planName = getCell('plan name');
+                const sumInsured = getCell('sum insured');
+                const premium = getCell('total premium');
+                const addonCost = getCell('addon cost');
+                const ageDob = getCell('age/dob');
+                
+                customerDetailsStr = `Policy No - ${policy}\nPlan - ${planName}\nSum Insured - ${sumInsured}\nTotal Premium - ${premium}\nAddon Cost - ${addonCost}\nAge/DOB - ${ageDob}`;
+                
+                // Reconstruct utilities from old format
+                const currentStatus = getCell('current status');
+                const notes = getCell('latest notes');
+                const callbackStr = getCell('callback date/time');
+                const lastUpdatedStr = getCell('last updated');
+                const callCount = getCell('total calls');
+                const dispositionLog = getCell('complete disposition log');
+                
+                utilitiesStr = `Current Status - ${currentStatus}\nLatest Notes - ${notes}\nCallback - ${callbackStr}\nLast Updated - ${lastUpdatedStr}\nTotal Calls - ${callCount}\nDisposition Log - ${dispositionLog}`;
+              }
               
               if (!leadId || !name || !phone) {
+                console.warn(`Row ${i}: Missing required fields - LeadId: ${leadId}, Name: ${name}, Phone: ${phone}`);
                 errorCount++;
                 continue;
               }
+              
+              console.log(`Row ${i}: Successfully parsed - LeadId: ${leadId}, Name: ${name}, Phone: ${phone}`);
               
               // Parse customer details
               let policy = '';
@@ -1965,8 +2029,21 @@
             }
           }
           
+          console.log(`Processing complete - Success: ${successCount}, Errors: ${errorCount}`);
+          
           if (successCount === 0) {
-            alert('❌ No valid data found in backup file');
+            let errorMsg = '❌ No valid data found in backup file\n\n';
+            errorMsg += `📊 Processing Summary:\n`;
+            errorMsg += `• Total rows processed: ${rows.length - 1}\n`;
+            errorMsg += `• Successful imports: ${successCount}\n`;
+            errorMsg += `• Errors encountered: ${errorCount}\n\n`;
+            errorMsg += `🔍 Common issues:\n`;
+            errorMsg += `• Check if file has correct headers\n`;
+            errorMsg += `• Ensure Lead ID, Name, and Phone are present\n`;
+            errorMsg += `• Verify file was exported from this system\n\n`;
+            errorMsg += `💡 Check browser console for detailed error information.`;
+            
+            alert(errorMsg);
             event.target.value = '';
             return;
           }
