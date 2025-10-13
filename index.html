@@ -517,7 +517,7 @@
         <div class="google-icon"></div>
         Continue with Google
       </button> -->
-<!-- 
+      <!-- 
       <div class="divider">
         <span>or</span>
       </div> -->
@@ -1718,6 +1718,7 @@
         }
       }
 
+
       function showNotification(message, type = 'info') {
         // Create notification element
         const notification = document.createElement('div');
@@ -2010,6 +2011,10 @@
 
         container.innerHTML = '';
 
+        let callbackUpcomingCount = 0;
+        let callbackOverdueCount = 0;
+        let callbackAllCount = 0;
+
         let filtered = data.filter(item => {
           // Ensure leadId exists
           if (!item.leadId) {
@@ -2028,31 +2033,32 @@
           if (currentTab === 'contacted') {
             const isDone = disp.status !== 'pending' && disp.status !== 'callback';
             if (!isDone) return false;
-
             if (currentDoneFilter === 'all') return true;
             return disp.status === currentDoneFilter;
           }
           if (currentTab === 'callback') {
             if (disp.status !== 'callback') return false;
 
-            if (currentCallbackFilter === 'all') return true;
-
-            // Check if callback is upcoming or overdue based on callback date
-            const callbackDate = disp.callbackDate;
-            if (!callbackDate) return currentCallbackFilter === 'upcoming'; // Default to upcoming if no date
-
-            const now = new Date();
-            const callbackDateTime = new Date(callbackDate);
-
-            if (currentCallbackFilter === 'upcoming') {
-              return callbackDateTime >= now;
-            } else if (currentCallbackFilter === 'overdue') {
-              return callbackDateTime < now;
+            const callbackDateStr = disp.callback || '';
+            if (!callbackDateStr) {
+              // If callback not set, treat as upcoming
+              if (currentCallbackFilter === 'upcoming' || currentCallbackFilter === 'all') callbackUpcomingCount++;
+              if (currentCallbackFilter === 'all') callbackAllCount++;
+              return currentCallbackFilter === 'upcoming' || currentCallbackFilter === 'all';
             }
 
-            return true;
+            const now = new Date();
+            const callbackDate = new Date(callbackDateStr);
+            if (callbackDate >= now) {
+              if (currentCallbackFilter === 'upcoming' || currentCallbackFilter === 'all') callbackUpcomingCount++;
+              if (currentCallbackFilter === 'all') callbackAllCount++;
+              return currentCallbackFilter === 'upcoming' || currentCallbackFilter === 'all';
+            } else {
+              if (currentCallbackFilter === 'overdue' || currentCallbackFilter === 'all') callbackOverdueCount++;
+              if (currentCallbackFilter === 'all') callbackAllCount++;
+              return currentCallbackFilter === 'overdue' || currentCallbackFilter === 'all';
+            }
           }
-
           return true;
         });
 
@@ -2145,6 +2151,16 @@
 
           container.appendChild(card);
         });
+
+        // Update Callback chip counts if needed
+        if (currentTab === 'callback') {
+          const allChip = document.getElementById('count-callback-all');
+          const upChip = document.getElementById('count-callback-upcoming');
+          const overdueChip = document.getElementById('count-callback-overdue');
+          if (allChip) allChip.textContent = callbackUpcomingCount + callbackOverdueCount;
+          if (upChip) upChip.textContent = callbackUpcomingCount;
+          if (overdueChip) overdueChip.textContent = callbackOverdueCount;
+        }
       }
 
       function switchTab(tab) {
@@ -3192,7 +3208,10 @@
           showMessage(`Welcome! You are now logged in with Google as ${user.email}`, 'success');
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
-          handleLogout();
+          // Clear user data without showing confirmation popup
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+          currentUser = null;
+          showLogin();
         }
       });
 
