@@ -780,7 +780,7 @@
     </header>
 
     <!-- Search Bar -->
-    <div id="searchBar" class="px-3 sm:px-4 py-3 bg-gray-50 border-b border-gray-200">
+    <div id="searchBar" class="px-3 sm:px-4 py-3 border-gray-200">
       <div class="relative">
         <input type="text" id="searchInput" placeholder="Search customers..."
           class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -942,7 +942,7 @@
     </div>
 
     <!-- Cards Container -->
-    <div id="cardsContainer" class="px-3 sm:px-5 pb-6 space-y-3 sm:space-y-4"></div>
+    <div id="cardsContainer" class="px-3 sm:px-5 pt-3 pb-6 space-y-3 sm:space-y-4"></div>
 
     <!-- Disposition Modal -->
     <div id="dispositionModal" class="modal">
@@ -998,14 +998,79 @@
         </div>
       </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
     <script>
       // Supabase Configuration
+      // Toggle shrink/expand for Customer Details section
+      function toggleCustomerDetails(btn) {
+        // Find the parent .bg-gray-50 section
+        let parent = btn.closest('.bg-gray-50');
+        if (!parent) return;
+        const content = parent.querySelector('.customer-details-content');
+        const divider = parent.querySelector('.customer-details-divider');
+        const icon = btn.querySelector('svg');
+        if (!content || !icon || !divider) return;
+        // If collapsed, expand
+        if (content.getAttribute('data-collapsed') === 'true') {
+          content.style.maxHeight = '600px';
+          content.style.opacity = '1';
+          content.setAttribute('data-collapsed', 'false');
+          icon.style.transform = 'rotate(180deg)';
+          divider.style.display = '';
+        } else {
+          content.style.maxHeight = '0px';
+          content.style.opacity = '0';
+          content.setAttribute('data-collapsed', 'true');
+          icon.style.transform = 'rotate(0deg)';
+          divider.style.display = 'none';
+        }
+      }
       const SUPABASE_URL = 'https://eigisleuqfshwqiasvxw.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2lzbGV1cWZzaHdxaWFzdnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMTIzMTcsImV4cCI6MjA3NTc4ODMxN30.GuZb5q_dDElI2gBuQZVFgNqH-2UHO_q9QOQ6hKknO4A';
 
       // Initialize Supabase client
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // Silent sync function to update data without UI refresh
+      async function silentSync() {
+        if (!isAuthenticated) return;
+        
+        try {
+          // Get latest data from Supabase
+          const newDispositions = await getDispositions();
+          const newCustomerData = await getCustomerData();
+          
+          // Compare and update only if data has changed
+          const dispositionsChanged = JSON.stringify(newDispositions) !== JSON.stringify(dispositions);
+          const dataChanged = JSON.stringify(newCustomerData) !== JSON.stringify(data);
+          
+          if (dispositionsChanged) {
+            dispositions = newDispositions;
+          }
+          
+          if (dataChanged) {
+            // Clear and update data array while preserving references
+            data.length = 0;
+            data.push(...newCustomerData);
+          }
+          
+          // Only update UI if data actually changed
+          if (dispositionsChanged || dataChanged) {
+            updateCounts(); // Update counters
+            
+            // Only re-render cards if we're not in settings tab
+            if (currentTab !== 'settings') {
+              renderCards();
+            }
+          }
+        } catch (error) {
+          console.log('Silent sync error:', error);
+        }
+      }
+
+      // Auto-refresh CRM data every 10 seconds using silent sync
+      setInterval(silentSync, 10000);
 
       // Function to set user context for RLS policies
       async function setUserContext(userId) {
@@ -1137,84 +1202,42 @@
                 console.log('Raw customer_details:', JSON.stringify(item.customer_details));
               }
 
-              // Try multiple separators: \n, |, and also handle quoted strings
-              let details = [];
-              if (item.customer_details.includes('\n')) {
-                details = item.customer_details.split('\n');
-              } else if (item.customer_details.includes(' | ')) {
-                details = item.customer_details.split(' | ');
-              } else if (item.customer_details.includes('"')) {
-                // Handle quoted format like "Policy No - POLCX3RR1CV\nSum Insured - 1\n..."
-                const cleaned = item.customer_details.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
-                details = cleaned.split('\n');
-              } else {
-                // Fallback: treat as single item
-                details = [item.customer_details];
-              }
-
-              if (item.lead_id === data[0]?.lead_id) {
-                console.log('Split details:', details);
-              }
-
-              details.forEach(detail => {
-                const trimmedDetail = detail.trim();
-                if (item.lead_id === data[0]?.lead_id) {
-                  console.log('Processing detail:', JSON.stringify(trimmedDetail));
-                }
-
-                if (trimmedDetail.includes('Plan_checked - ')) {
-                  const value = trimmedDetail.replace('Plan_checked - ', '').trim();
-                  mainCustomFields['Plan'] = value;
-                  if (item.lead_id === data[0]?.lead_id) console.log('Found checked plan:', value);
-                } else if (trimmedDetail.includes('Sum Insured_checked - ')) {
-                  const value = trimmedDetail.replace('Sum Insured_checked - ', '').trim();
-                  mainCustomFields['Sum Insured'] = value;
-                  if (item.lead_id === data[0]?.lead_id) console.log('Found checked sumInsured:', value);
-                } else if (trimmedDetail.includes('Total Premium_checked - ₹')) {
-                  const value = trimmedDetail.replace('Total Premium_checked - ₹', '').trim();
-                  mainCustomFields['Total Premium'] = `₹${value}`;
-                  if (item.lead_id === data[0]?.lead_id) console.log('Found checked amount:', value);
-                } else if (trimmedDetail.includes('Addon Cost_checked - ₹')) {
-                  const value = trimmedDetail.replace('Addon Cost_checked - ₹', '').trim();
-                  mainCustomFields['Addon Cost'] = `₹${value}`;
-                  if (item.lead_id === data[0]?.lead_id) console.log('Found checked addonCost:', value);
-                } else if (trimmedDetail.includes('Company_checked - ')) {
-                  const value = trimmedDetail.replace('Company_checked - ', '').trim();
-                  mainCustomFields['Company'] = value;
-                  if (item.lead_id === data[0]?.lead_id) console.log('Found checked company:', value);
-                } else if (trimmedDetail.includes('Age/DOB_checked - ')) {
-                  const value = trimmedDetail.replace('Age/DOB_checked - ', '').trim();
-                  mainCustomFields['Age/DOB'] = value;
-                  if (item.lead_id === data[0]?.lead_id) console.log('Found checked dob:', value);
-                } else if (trimmedDetail.includes(' - ')) {
-                  // Custom fields with - separator
-                  const parts = trimmedDetail.split(' - ');
-                  if (parts.length >= 2) {
-                    const key = parts[0].trim();
-                    const value = parts.slice(1).join(' - ').trim();
-                    mainCustomFields[key] = value;
-                    if (item.lead_id === data[0]?.lead_id) console.log('Found custom field:', key, '=', value);
-                  }
-                } else if (trimmedDetail.includes(': ')) {
-                  // Custom fields with : separator (from unchecked fields)
-                  const parts = trimmedDetail.split(': ');
-                  if (parts.length >= 2) {
-                    let key = parts[0].trim();
-                    const value = parts.slice(1).join(': ').trim();
-
-                    // Handle _unchecked marker
-                    if (key.endsWith('_unchecked')) {
-                      key = key.replace('_unchecked', '');
-                      // Keep in customerDetails for display
-                      customerDetails += (customerDetails ? ' | ' : '') + `${key}: ${value}`;
-                      if (item.lead_id === data[0]?.lead_id) console.log('Found unchecked field:', key, '=', value);
+                // Use parseCustomerDetails to correctly handle multiline checked/unchecked entries
+                try {
+                  const parsed = parseCustomerDetails(item.customer_details || '');
+                  // Populate mainCustomFields from parsed.checked entries
+                  parsed.checked.forEach(entry => {
+                    const key = entry.key.trim();
+                    const value = entry.value;
+                    // Map known checked keys to display keys
+                    if (/^Plan$/i.test(key)) {
+                      mainCustomFields['Plan'] = value;
+                    } else if (/^Sum Insured$/i.test(key)) {
+                      mainCustomFields['Sum Insured'] = value;
+                    } else if (/^Total Premium$/i.test(key)) {
+                      mainCustomFields['Total Premium'] = value;
+                    } else if (/^Addon Cost$/i.test(key)) {
+                      mainCustomFields['Addon Cost'] = value;
+                    } else if (/^Company$/i.test(key)) {
+                      mainCustomFields['Company'] = value;
+                    } else if (/^Age\/DOB$/i.test(key)) {
+                      mainCustomFields['Age/DOB'] = value;
                     } else {
+                      // Generic checked field
                       mainCustomFields[key] = value;
-                      if (item.lead_id === data[0]?.lead_id) console.log('Found checked field:', key, '=', value);
                     }
+                  });
+
+                  // Keep unchecked entries concatenated with newlines, preserving multiline values
+                  if (parsed.unchecked && parsed.unchecked.length > 0) {
+                    const uncheckedLines = parsed.unchecked.map(u => `${u.key}_unchecked: ${u.value}`);
+                    customerDetails = uncheckedLines.join('\n');
                   }
+                } catch (e) {
+                  // Fallback: if parse failed, leave customerDetails empty or use raw
+                  if (item.lead_id === data[0]?.lead_id) console.warn('parseCustomerDetails failed, falling back', e);
+                  customerDetails = item.customer_details;
                 }
-              });
             }
 
             const transformedItem = {
@@ -1912,6 +1935,82 @@
         return d;
       }
 
+      // Parse customerDetails string into structured entries preserving multiline values
+      function parseCustomerDetails(str) {
+        if (!str) return { checked: [], unchecked: [] };
+        const lines = str.split('\n');
+        const checked = [];
+        const unchecked = [];
+
+        // We'll parse lines trying to detect keys ending with _checked - or _unchecked:
+        let currentKey = null;
+        let currentType = null;
+        let currentValueLines = [];
+
+        function flush() {
+          if (!currentKey) return;
+          const value = currentValueLines.join('\n').trim();
+          if (currentType === 'checked') checked.push({ key: currentKey.trim(), value });
+          else if (currentType === 'unchecked') unchecked.push({ key: currentKey.trim(), value });
+          currentKey = null; currentType = null; currentValueLines = [];
+        }
+
+        lines.forEach(raw => {
+          const line = raw.trim();
+          if (!line) return;
+
+          const checkedMatch = line.match(/^(.*?)_checked\s*-\s*(.*)$/);
+          const uncheckedMatch = line.match(/^(.*?)_unchecked\s*:\s*(.*)$/);
+
+          if (checkedMatch) {
+            // new checked entry
+            flush();
+            currentKey = checkedMatch[1];
+            currentType = 'checked';
+            currentValueLines.push(checkedMatch[2] || '');
+          } else if (uncheckedMatch) {
+            // new unchecked entry
+            flush();
+            currentKey = uncheckedMatch[1];
+            currentType = 'unchecked';
+            currentValueLines.push(uncheckedMatch[2] || '');
+          } else {
+            // continuation of previous value (multiline)
+            if (currentKey) {
+              currentValueLines.push(line);
+            } else {
+              // fallback - treat as unchecked with unknown key
+              unchecked.push({ key: 'extra', value: line });
+            }
+          }
+        });
+
+        flush();
+        return { checked, unchecked };
+      }
+
+      // Helper to format multiline customer detail values into a single-line compact form
+      function formatCustomerValue(val) {
+        if (!val && val !== 0) return '';
+        let s = String(val);
+        // Replace newlines with space, collapse multiple spaces
+        // collapse multiple spaces but preserve meaningful commas/newlines (we'll render newlines in HTML)
+        s = s.replace(/\r?\n/g, '\n').replace(/\s+/g, ' ').trim();
+        return s;
+      }
+
+      // Helper to escape HTML and preserve line breaks by converting newlines to <br>
+      function escapeHtmlWithLineBreaks(str) {
+        if (str === null || str === undefined) return '';
+        const escaped = String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+        return escaped.replace(/\r?\n/g, '<br>');
+      }
+
       async function setDisposition(leadId, dispositionData) {
         dispositions[leadId] = dispositionData;
 
@@ -2204,18 +2303,86 @@
             ` : ''}
             
             <div class="space-y-2 mb-3 sm:mb-4">
-              ${item.mainCustomFields ? Object.entries(item.mainCustomFields).map(([label, value]) => {
-            const displayLabel = label.endsWith('_checked') ? label.replace('_checked', '') : label;
-            return `<div class='flex items-center justify-between text-xs sm:text-sm'><span class='text-gray-400 font-light truncate mr-2'>${displayLabel}</span><span class='text-gray-700 font-medium text-right break-words'>${value}</span></div>`;
-          }).join('') : ''}
+              <!-- Show checked/required fields in main view (from multiple sources) -->
+              ${(() => {
+                const parts = [];
+
+                // 1) mainCustomFields (keys may end with _checked)
+                if (item.mainCustomFields && typeof item.mainCustomFields === 'object') {
+                  Object.entries(item.mainCustomFields).forEach(([k, v]) => {
+                    if (!v) return;
+                    const label = k.endsWith('_checked') ? k.replace('_checked', '') : k;
+                    parts.push({ label: label.trim(), value: v });
+                  });
+                }
+
+                // 2) explicit fields on item (sumInsured, amount/premium, company)
+                if (item.sumInsured) parts.unshift({ label: 'Sum Insured', value: item.sumInsured });
+                if (item.amount) parts.unshift({ label: 'Total Premium', value: `₹${Number(item.amount).toLocaleString('en-IN')}` });
+                if (item.premium) parts.unshift({ label: 'Total Premium', value: `₹${Number(item.premium).toLocaleString('en-IN')}` });
+                if (item.company) parts.unshift({ label: 'Company', value: item.company });
+
+                // 3) also check for _checked and _unchecked entries inside customerDetails (preserve multiline values)
+                if (item.customerDetails) {
+                  const parsed = parseCustomerDetails(item.customerDetails);
+                  parsed.checked.forEach(e => parts.push({ label: e.key, value: e.value }));
+                }
+
+                if (parts.length === 0) return '';
+
+                return parts.map(p => `<div class='flex items-center justify-between text-xs sm:text-sm'><span class='text-gray-400 font-light truncate mr-2'>${escapeHtml(p.label)}</span><span class='text-gray-700 font-medium text-right break-words'>${escapeHtmlWithLineBreaks(p.value)}</span></div>`).join('');
+              })()}
             </div>
-            
-              <div class="bg-gray-50 rounded-xl p-3 mb-3 sm:mb-4 text-xs text-gray-600">
-              <div class="font-medium text-gray-700 mb-1">Customer Details</div>
-              ${item.plan ? `<div class="leading-relaxed break-words">${item.plan}</div>` : ''}
-              ${item.customerDetails ? `<div class="mt-2 text-gray-600 break-words">${item.customerDetails}</div>` : ''}
-              ${item.addonCost > 0 ? `<div class="mt-2 text-purple-600 font-medium">Add-on Cost: ₹${item.addonCost.toLocaleString("en-IN")}</div>` : ''}
-            </div>            ${disp.notes ? `
+
+            <div class="bg-gray-50 rounded-xl p-3 mb-3 sm:mb-4 text-xs text-gray-600">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold text-gray-800 sm:text-base" style=" padding-top:3px;padding-bottom:3px;">Customer Details</div>
+                
+                <button type="button" onclick="toggleCustomerDetails(this)" class="ml-2 focus:outline-none" style="background:transparent;border:none;">
+
+                  <svg id="customerDetailsIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor" style="transform:rotate(0deg);"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" /></svg>
+                </button>
+              </div>
+              <div class="customer-details-divider" style="margin-top:5px;height:2px;width:100%;background:#e5e7eb;opacity:0.7;margin-bottom:8px;display:none;"></div>
+              <div class="overflow-x-auto customer-details-content" style="max-height:0;opacity:0;transition:max-height 0.4s cubic-bezier(.4,0,.2,1),opacity 0.3s;" data-collapsed="true">
+                <table class="min-w-full text-xs shadow-lg" style="border:none;background:transparent;">
+                  <thead>
+                   
+                  </thead>
+                  <tbody>
+                    ${(() => {
+                      const parsed = parseCustomerDetails(item.customerDetails || '');
+                      const all = (!parsed.checked || parsed.checked.length === 0)
+                        ? [...parsed.checked, ...parsed.unchecked]
+                        : parsed.unchecked;
+                      if (!all || all.length === 0) return '';
+                      return all.map((e, idx) => {
+                        // Flatten multiline value to single line
+                        const value = String(e.value).replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
+                        let rowHtml = `
+                          <tr class='hover:bg-indigo-50 transition-all' style='background:transparent;'>
+                            <td class='text-gray-600 pr-2 align-top px-5 py-3 font-medium rounded-l-2xl'>${escapeHtml(e.key.trim())}</td>
+                            <td class='text-gray-900 align-top px-5 py-3 rounded-r-2xl'>${escapeHtml(value)}</td>
+                          </tr>
+                        `;
+                        // Only add divider if not last row
+                        if (idx < all.length - 1) {
+                          rowHtml += `
+                            <tr style='background:transparent;'>
+                              <td colspan='2' style='height:1px;padding:0;'><div style='height:1px;width:100%;background:#e5e7eb;opacity:0.6;'></div></td>
+                            </tr>
+                          `;
+                        }
+                        return rowHtml;
+                      }).join('');
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+              ${item.addonCost > 0 ? `<div class="mt-2 text-purple-600 font-medium">Add-on Cost: ₹${item.addonCost.toLocaleString('en-IN')}</div>` : ''}
+            </div>
+
+            ${disp.notes ? `
               <div class="bg-blue-50 rounded-xl p-3 mb-3 sm:mb-4 text-xs">
                 <div class="flex gap-2">
                   <span class="text-base flex-shrink-0">📝</span>
@@ -2642,101 +2809,98 @@
       }
 
       // CSV import related variables and functions
-      (() => {
-        let csvData = null;
-        let csvHeaders = null;
-        let additionalFields = [];
-        let selectedOptions = new Set();
-        let fieldMappings = {
-          name: [],
-          phone: [],
-          sum_insured: [],
-          premium: [],
-          expiry_date: [],
-          company: []
-        };
+      // Global variables used by PapaParse handler and mapping UI
+      let csvData = null;
+      let csvHeaders = null;
+      let additionalFields = [];
+      let selectedOptions = new Set();
+      let fieldMappings = {
+        name: [],
+        phone: [],
+        sum_insured: [],
+        premium: [],
+        expiry_date: [],
+        company: []
+      };
 
-        // Function to update available options in all selects
-        function updateAvailableOptions() {
-          window.updateAvailableOptions = updateAvailableOptions;
-          // Clear selected options set
-          selectedOptions.clear();
+      // Function to update available options in all selects
+      function updateAvailableOptions() {
+        window.updateAvailableOptions = updateAvailableOptions;
+        // Build a normalized set of currently selected header keys (trimmed lowercase)
+        selectedOptions.clear();
+        const normalize = s => (s || '').toString().trim().toLowerCase();
 
-          // Collect all selected values
-          const selects = ['map_name', 'map_phone', 'map_sum_insured', 'map_premium', 'map_expiry_date', 'map_company'];
-          selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            if (select && select.value) {
-              selectedOptions.add(select.value);
-            }
-          });
+        const selects = ['map_name', 'map_phone', 'map_sum_insured', 'map_premium', 'map_expiry_date', 'map_company'];
+        selects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          if (select && select.value) selectedOptions.add(normalize(select.value));
+        });
 
-          // Check additional fields
-          Object.values(fieldMappings).flat().forEach(mappingId => {
-            const select = document.getElementById(mappingId);
-            if (select && select.value) {
-              selectedOptions.add(select.value);
-            }
-          });
+        // Additional mappings (dynamically added mapping selects)
+        Object.values(fieldMappings).flat().forEach(mappingId => {
+          const select = document.getElementById(mappingId);
+          if (select && select.value) selectedOptions.add(normalize(select.value));
+        });
 
-          // Check custom fields
-          additionalFields.forEach(fieldId => {
-            const select = document.getElementById(`${fieldId}_column`);
-            if (select && select.value) {
-              selectedOptions.add(select.value);
-            }
-          });
+        // Custom fields selects
+        additionalFields.forEach(fieldId => {
+          const select = document.getElementById(`${fieldId}_column`);
+          if (select && select.value) selectedOptions.add(normalize(select.value));
+        });
 
-          // Update options in all selects
-          function updateSelectOptions(select) {
-            const currentValue = select.value;
-            const options = ['<option value="">Select Column</option>'];
+        // Update options in a given select element
+        function updateSelectOptions(select) {
+          const currentValue = select.value;
+          const currentNorm = normalize(currentValue);
+          const options = ['<option value="">Select Column</option>'];
 
-            if (csvHeaders) {
-              csvHeaders.forEach(header => {
-                // Show the option if it's either not selected anywhere, or it's the current value of this select
-                if (!selectedOptions.has(header) || header === currentValue) {
-                  options.push(`<option value="${header}">${header}</option>`);
-                }
-              });
-            }
-
-            select.innerHTML = options.join('');
-            select.value = currentValue; // Restore the current value
+          if (csvHeaders) {
+            csvHeaders.forEach(header => {
+              const hNorm = normalize(header);
+              // include header if not chosen elsewhere OR it's the current value for this select
+              if (!selectedOptions.has(hNorm) || hNorm === currentNorm) {
+                options.push(`<option value="${header}">${header}</option>`);
+              }
+            });
           }
 
-          // Update main selects
-          selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            if (select) {
-              updateSelectOptions(select);
-            }
-          });
-
-          // Update additional field selects
-          Object.values(fieldMappings).flat().forEach(mappingId => {
-            const select = document.getElementById(mappingId);
-            if (select) {
-              updateSelectOptions(select);
-            }
-          });
-
-          // Update custom field selects
-          additionalFields.forEach(fieldId => {
-            const select = document.getElementById(`${fieldId}_column`);
-            if (select) {
-              updateSelectOptions(select);
-            }
-          });
+          select.innerHTML = options.join('');
+          // Restore previously selected value if still present
+          try { select.value = currentValue; } catch (e) { /* ignore */ }
         }
 
-        window.addMappingField = function (fieldType) {
-          const container = document.getElementById(`${fieldType}_fields`) || document.getElementById(`map_${fieldType}`).parentElement;
-          const mappingId = `${fieldType}_${Date.now()}`;
+        // Update main selects
+        selects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          if (select) {
+            updateSelectOptions(select);
+          }
+        });
 
-          const select = document.createElement('div');
-          select.className = 'flex gap-2 mb-2';
-          select.innerHTML = `
+        // Update additional field selects
+        Object.values(fieldMappings).flat().forEach(mappingId => {
+          const select = document.getElementById(mappingId);
+          if (select) {
+            updateSelectOptions(select);
+          }
+        });
+
+        // Update custom field selects
+        additionalFields.forEach(fieldId => {
+          const select = document.getElementById(`${fieldId}_column`);
+          if (select) {
+            updateSelectOptions(select);
+          }
+        });
+      }
+
+      window.addMappingField = function (fieldType) {
+        const container = document.getElementById(`${fieldType}_fields`) || document.getElementById(`map_${fieldType}`).parentElement;
+        const mappingId = `${fieldType}_${Date.now()}`;
+
+        const select = document.createElement('div');
+        select.className = 'flex gap-2 mb-2';
+        select.innerHTML = `
           <select id="${mappingId}" class="flex-1 px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm min-h-[44px]" onchange="updateAvailableOptions()">
             <option value="">Select Column</option>
             ${csvHeaders ? csvHeaders.filter(h => !selectedOptions.has(h)).map(h => `<option value="${h}">${h}</option>`).join('') : ''}
@@ -2746,58 +2910,58 @@
           </button>
         `;
 
-          if (container.tagName === 'DIV') {
-            container.appendChild(select);
-          } else {
-            const parentDiv = document.createElement('div');
-            parentDiv.id = `${fieldType}_fields`;
-            parentDiv.className = 'space-y-2';
+        if (container.tagName === 'DIV') {
+          container.appendChild(select);
+        } else {
+          const parentDiv = document.createElement('div');
+          parentDiv.id = `${fieldType}_fields`;
+          parentDiv.className = 'space-y-2';
 
-            // Move the original select into the new container
-            const originalContent = container.innerHTML;
-            container.innerHTML = '';
-            parentDiv.innerHTML = `<div class="flex gap-2 mb-2">${originalContent}</div>`;
-            parentDiv.appendChild(select);
+          // Move the original select into the new container
+          const originalContent = container.innerHTML;
+          container.innerHTML = '';
+          parentDiv.innerHTML = `<div class="flex gap-2 mb-2">${originalContent}</div>`;
+          parentDiv.appendChild(select);
 
-            container.parentElement.appendChild(parentDiv);
+          container.parentElement.appendChild(parentDiv);
+        }
+
+        // Add to field mappings
+        if (!fieldMappings[fieldType]) {
+          fieldMappings[fieldType] = [];
+        }
+        fieldMappings[fieldType].push(mappingId);
+      };
+
+      window.removeMappingField = function (mappingId) {
+        const element = document.getElementById(mappingId);
+        const selectedValue = element?.value;
+
+        if (element && element.parentElement) {
+          element.parentElement.remove();
+        }
+
+        // Remove from field mappings
+        for (const [fieldType, mappings] of Object.entries(fieldMappings)) {
+          const index = mappings.indexOf(mappingId);
+          if (index !== -1) {
+            mappings.splice(index, 1);
+            break;
           }
+        }
 
-          // Add to field mappings
-          if (!fieldMappings[fieldType]) {
-            fieldMappings[fieldType] = [];
-          }
-          fieldMappings[fieldType].push(mappingId);
-        };
+        // Update available options after removing a field
+        updateAvailableOptions();
+      };
 
-        window.removeMappingField = function (mappingId) {
-          const element = document.getElementById(mappingId);
-          const selectedValue = element?.value;
+      window.addCustomField = function () {
+        const container = document.getElementById('additionalFieldsMapping');
+        const fieldId = 'custom_' + Date.now();
 
-          if (element && element.parentElement) {
-            element.parentElement.remove();
-          }
+        // Filter out already selected options
+        const availableHeaders = csvHeaders ? csvHeaders.filter(h => !selectedOptions.has(h)) : [];
 
-          // Remove from field mappings
-          for (const [fieldType, mappings] of Object.entries(fieldMappings)) {
-            const index = mappings.indexOf(mappingId);
-            if (index !== -1) {
-              mappings.splice(index, 1);
-              break;
-            }
-          }
-
-          // Update available options after removing a field
-          updateAvailableOptions();
-        };
-
-        window.addCustomField = function () {
-          const container = document.getElementById('additionalFieldsMapping');
-          const fieldId = 'custom_' + Date.now();
-
-          // Filter out already selected options
-          const availableHeaders = csvHeaders ? csvHeaders.filter(h => !selectedOptions.has(h)) : [];
-
-          const fieldHtml = `
+        const fieldHtml = `
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start sm:items-center space-y-2 sm:space-y-0" id="${fieldId}_container">
             <div class="space-y-1">
               <input type="text" placeholder="Field Label" class="w-full px-3 py-2.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm min-h-[44px]" 
@@ -2822,55 +2986,55 @@
           </div>
         `;
 
-          container.insertAdjacentHTML('beforeend', fieldHtml);
-          additionalFields.push(fieldId);
+        container.insertAdjacentHTML('beforeend', fieldHtml);
+        additionalFields.push(fieldId);
 
-          // Add this field's select to the tracking
-          fieldMappings['custom'] = fieldMappings['custom'] || [];
-          fieldMappings['custom'].push(`${fieldId}_column`);
-        };
+        // Add this field's select to the tracking
+        fieldMappings['custom'] = fieldMappings['custom'] || [];
+        fieldMappings['custom'].push(`${fieldId}_column`);
+      };
 
-        window.updateCustomFieldLabel = function (fieldId) {
-          const selectElement = document.getElementById(`${fieldId}_column`);
-          const labelElement = document.getElementById(`${fieldId}_label`);
+      window.updateCustomFieldLabel = function (fieldId) {
+        const selectElement = document.getElementById(`${fieldId}_column`);
+        const labelElement = document.getElementById(`${fieldId}_label`);
 
-          if (selectElement && labelElement) {
-            const selectedValue = selectElement.value;
-            if (selectedValue) {
-              // Update the label field with the selected column name
-              labelElement.value = selectedValue;
-            }
+        if (selectElement && labelElement) {
+          const selectedValue = selectElement.value;
+          if (selectedValue) {
+            // Update the label field with the selected column name
+            labelElement.value = selectedValue;
           }
-        };
+        }
+      };
 
-        window.removeCustomField = function (fieldId) {
-          const container = document.getElementById(`${fieldId}_container`);
-          const select = document.getElementById(`${fieldId}_column`);
+      window.removeCustomField = function (fieldId) {
+        const container = document.getElementById(`${fieldId}_container`);
+        const select = document.getElementById(`${fieldId}_column`);
 
-          // Remove from fieldMappings
-          if (fieldMappings['custom']) {
-            const index = fieldMappings['custom'].indexOf(`${fieldId}_column`);
-            if (index !== -1) {
-              fieldMappings['custom'].splice(index, 1);
-            }
+        // Remove from fieldMappings
+        if (fieldMappings['custom']) {
+          const index = fieldMappings['custom'].indexOf(`${fieldId}_column`);
+          if (index !== -1) {
+            fieldMappings['custom'].splice(index, 1);
           }
+        }
 
-          // Remove from additionalFields
-          const addIndex = additionalFields.indexOf(fieldId);
-          if (addIndex !== -1) {
-            additionalFields.splice(addIndex, 1);
-          }
+        // Remove from additionalFields
+        const addIndex = additionalFields.indexOf(fieldId);
+        if (addIndex !== -1) {
+          additionalFields.splice(addIndex, 1);
+        }
 
-          // Remove the container
-          if (container) {
-            container.remove();
-          }
+        // Remove the container
+        if (container) {
+          container.remove();
+        }
 
-          // Update available options
-          updateAvailableOptions();
-        };
+        // Update available options
+        updateAvailableOptions();
+      };
 
-        window.processMappedFields = async function () {
+      window.processMappedFields = async function () {
           // Get values from all mapped fields
           const mapping = {};
           const multiMapping = {};
@@ -2933,32 +3097,19 @@
           const newData = [];
           let errorCount = 0;
 
-          for (let i = 1; i < csvData.length; i++) {
+          for (let i = 0; i < csvData.length; i++) {
             const row = csvData[i];
-            if (!row || row.length === 0) continue;
+            if (!row || Object.keys(row).length === 0) continue;
 
             try {
-              const getCell = (columnName) => {
-                const idx = csvHeaders.indexOf(columnName);
-                return idx >= 0 ? (row[idx] ? row[idx].trim() : '') : '';
-              };
-
-              // Get mapped values (avoid duplicate columns, preserve order)
-              const getCombinedValue = (mainMapping, additionalMappings = []) => {
-                const allMappings = [mainMapping, ...additionalMappings].filter(Boolean);
-                // Remove duplicates
-                const uniqueMappings = [...new Set(allMappings)];
-                const values = uniqueMappings.map(m => getCell(m)).filter(Boolean);
-                return values.join(' ').replace(/\s+/g, ' ').trim();
-              };
-
-              const name = getCombinedValue(mapping.name, multiMapping.name || []);
-              console.log('DEBUG name:', name, 'from', mapping.name, multiMapping.name);
-              const phone = getCombinedValue(mapping.phone, multiMapping.phone || []).replace(/[^0-9]/g, '');
-              const sumInsured = getCombinedValue(mapping.sum_insured, multiMapping.sum_insured || []);
-              const premium = parseInt(getCombinedValue(mapping.premium, multiMapping.premium || []).replace(/[^0-9]/g, '')) || 0;
-              const expiryDate = getCombinedValue(mapping.expiry_date, multiMapping.expiry_date || []);
-              const company = getCombinedValue(mapping.company, multiMapping.company || []);
+              // Use only user-selected columns for required fields
+              const name = row[mapping.name] || '';
+              const phone = (row[mapping.phone] || '').replace(/[^0-9]/g, '');
+              const expiryDate = row[mapping.expiry_date] || '';
+              const sumInsured = row[mapping.sum_insured] || '';
+              const premiumRaw = row[mapping.premium] || '';
+              const premium = parseInt(premiumRaw.replace(/[^0-9]/g, '')) || 0;
+              const company = row[mapping.company] || '';
 
               // Skip if essential data is missing
               if (!name || !phone) {
@@ -2978,7 +3129,6 @@
               const customerDetailsArr = [];
 
               // Add Required Fields to mainCustomFields if checked
-
               if (sumInsured) {
                 if (document.getElementById('show_sum_insured_main')?.checked) {
                   mainCustomFields['Sum Insured_checked'] = sumInsured;
@@ -2986,7 +3136,6 @@
                   customerDetailsArr.push(`Sum Insured_unchecked: ${sumInsured}`);
                 }
               }
-
               if (premium) {
                 if (document.getElementById('show_premium_main')?.checked) {
                   mainCustomFields['Total Premium_checked'] = `₹${premium.toLocaleString("en-IN")}`;
@@ -2994,7 +3143,6 @@
                   customerDetailsArr.push(`Total Premium_unchecked: ₹${premium.toLocaleString("en-IN")}`);
                 }
               }
-
               if (company) {
                 if (document.getElementById('show_company_main')?.checked) {
                   mainCustomFields['Company_checked'] = company;
@@ -3002,47 +3150,26 @@
                   customerDetailsArr.push(`Company_unchecked: ${company}`);
                 }
               }
-              for (const [label, column] of Object.entries(additionalMappings)) {
-                const value = getCell(column);
+
+              // Add all other columns as custom fields (not mapped to required fields)
+              for (const key of Object.keys(row)) {
+                if ([mapping.name, mapping.phone, mapping.expiry_date, mapping.sum_insured, mapping.premium, mapping.company].includes(key)) continue;
+                const value = row[key];
                 if (value) {
-                  const fieldId = additionalFields.find(fid => {
-                    const lbl = document.getElementById(`${fid}_label`);
-                    return lbl && lbl.value === label;
-                  });
-                  if (fieldId && document.getElementById(`show_custom_main_${fieldId}`)?.checked) {
-                    // Add _checked suffix to indicate this field was checked for main view
-                    mainCustomFields[`${label}_checked`] = value;
-                  } else {
-                    // Add _unchecked marker to indicate this field was not checked for main view
-                    customerDetailsArr.push(`${label}_unchecked: ${value}`);
-                  }
+                  customerDetailsArr.push(`${key}_unchecked: ${value}`);
                 }
               }
+
               // Format customer details with _checked suffix for checked fields
               let formattedCustomerDetails = '';
-
-              // Add checked fields from mainCustomFields with _checked suffix
               Object.entries(mainCustomFields).forEach(([key, value]) => {
                 if (value) {
                   const displayKey = key.endsWith('_checked') ? key.replace('_checked', '') : key;
                   formattedCustomerDetails += `${displayKey}_checked - ${value}\n`;
                 }
               });
-
-              // Add unchecked fields
               if (customerDetailsArr.length > 0) {
                 formattedCustomerDetails += customerDetailsArr.join('\n');
-              }
-
-              // Debug logging
-              if (i === 1) { // First data row
-                console.log('CSV Upload - Required Fields Checkboxes:');
-                console.log('  Sum Insured checked:', document.getElementById('show_sum_insured_main')?.checked);
-                console.log('  Premium checked:', document.getElementById('show_premium_main')?.checked);
-                console.log('  Company checked:', document.getElementById('show_company_main')?.checked);
-                console.log('CSV Upload - Formatted customer details:', formattedCustomerDetails.trim());
-                console.log('CSV Upload - Main custom fields:', mainCustomFields);
-                console.log('CSV Upload - Customer details arr:', customerDetailsArr);
               }
 
               const item = {
@@ -3115,115 +3242,176 @@
           alert(successMsg);
         };
 
-        window.handleFileUpload = function (event) {
-          const file = event.target.files[0];
-          if (!file) return;
-
-          try {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-              try {
-                const text = e.target.result;
-                csvData = text.split('\n').map(row => {
-                  // Split on comma, trim each cell, remove quotes
-                  return row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim());
-                }).filter(row => row.length > 0);
-
-                if (csvData.length < 2) {
-                  alert('❌ CSV file must have headers and at least one data row');
-                  return;
-                }
-
-                csvHeaders = csvData[0].map(h => h.trim());
-                additionalFields = []; // Reset additional fields
-
-                // Populate mapping dropdowns
-                const selects = ['map_name', 'map_phone', 'map_sum_insured', 'map_premium', 'map_expiry_date', 'map_company'];
-                selects.forEach(selectId => {
-                  const select = document.getElementById(selectId);
-                  select.innerHTML = '<option value="">Select Column</option>' +
-                    csvHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
-                  // Add change event listener
-                  select.addEventListener('change', () => {
-                    updateAvailableOptions();
-                  });
-                });
-
-                // Show mapping modal
-                document.getElementById('mappingModal').classList.add('active');
-              } catch (error) {
-                alert('❌ Error processing CSV file: ' + error.message);
-                console.error('CSV processing error:', error);
-              }
-            };
-
-            reader.onerror = function () {
-              alert('❌ Error reading file');
-              console.error('FileReader error:', reader.error);
-            };
-
-            reader.readAsText(file);
-          } catch (error) {
-            alert('❌ Error handling file: ' + error.message);
-            console.error('File handling error:', error);
-          } finally {
-            event.target.value = '';
-          }
-        };
-      })();
+        // end processMappedFields
 
       function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
+  try {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      encoding: "UTF-8",
+      quoteChar: '"',
+      escapeChar: '"',
+      newline: "", // auto-detect
+      complete: function (results) {
         try {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            try {
-              const text = e.target.result;
-              csvData = text.split('\n').map(row => {
-                const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                return matches ? matches.map(cell => cell.replace(/^"|"$/g, '').trim()) : [];
-              }).filter(row => row.length > 0);
+          const rows = results.data;
+          if (rows.length === 0) {
+            alert("❌ CSV file has no valid data rows");
+            return;
+          }
 
-              if (csvData.length < 2) {
-                alert('❌ CSV file must have headers and at least one data row');
-                return;
-              }
+          // Extract headers (exactly as CSV defines them)
+              csvHeaders = results.meta.fields || Object.keys(rows[0] || {});
+          additionalFields = [];
 
-              csvHeaders = csvData[0].map(h => h.trim());
-              additionalFields = []; // Reset additional fields
+          console.log("✅ CSV Headers:", csvHeaders);
+          console.log("✅ Sample Row:", rows[0]);
 
-              // Populate mapping dropdowns
-              const selects = ['map_name', 'map_phone', 'map_sum_insured', 'map_premium', 'map_expiry_date', 'map_company'];
-              selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                select.innerHTML = '<option value="">Select Column</option>' +
-                  csvHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
-              });
+          // Populate mapping dropdowns (as in your code)
+          const selects = [
+            "map_name",
+            "map_phone",
+            "map_sum_insured",
+            "map_premium",
+            "map_expiry_date",
+            "map_company"
+          ];
 
-              // Show mapping modal
-              document.getElementById('mappingModal').classList.add('active');
-            } catch (error) {
-              alert('❌ Error processing CSV file: ' + error.message);
-              console.error('CSV processing error:', error);
+          selects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (select) {
+              select.innerHTML =
+                '<option value="">Select Column</option>' +
+                csvHeaders
+                  .map(h => `<option value="${h}">${h}</option>`)
+                  .join("");
+              // Add change event listener to update options everywhere after any change
+              select.addEventListener('change', updateAvailableOptions);
             }
-          };
+          });
 
-          reader.onerror = function () {
-            alert('❌ Error reading file');
-            console.error('FileReader error:', reader.error);
-          };
+          // Store parsed rows globally (if you’re using csvData elsewhere)
+          csvData = rows.map(row => {
+            // Preserve multiline and ₹ symbols exactly as in file
+            const cleaned = {};
+            for (const key in row) {
+              if (Object.hasOwn(row, key)) {
+                const val = row[key];
+                cleaned[key] =
+                  typeof val === "string"
+                    ? val.replace(/\r?\n/g, "\n").trim()
+                    : val;
+              }
+            }
+            return cleaned;
+          });
 
-          reader.readAsText(file);
-        } catch (error) {
-          alert('❌ Error handling file: ' + error.message);
-          console.error('File handling error:', error);
-        } finally {
-          event.target.value = '';
+          console.log("🧾 Cleaned CSV Data:", csvData);
+
+          // Store parsed rows globally and show your mapping modal
+          csvData = rows.map(row => {
+            const cleaned = {};
+            for (const key in row) {
+              if (Object.hasOwn(row, key)) {
+                const val = row[key];
+                cleaned[key] = typeof val === "string" ? val.replace(/\r?\n/g, "\n").trim() : val;
+              }
+            }
+            return cleaned;
+          });
+
+          // Log parsed CSV data to console
+          console.log('CSV Preview:', csvData);
+
+
+          // Add button to mapping modal to show CSV table in a separate modal
+          const showTableBtnId = 'showCsvTableBtn';
+          let showTableBtn = document.getElementById(showTableBtnId);
+          if (!showTableBtn) {
+            let modalContent = document.querySelector('#mappingModal .modal-content .p-4');
+            if (!modalContent) {
+              modalContent = document.querySelector('#mappingModal .modal-content [class*="p-4"]');
+            }
+            showTableBtn = document.createElement('button');
+            showTableBtn.id = showTableBtnId;
+            showTableBtn.className = 'mb-4 bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition-all';
+            showTableBtn.textContent = 'Show CSV Data';
+            showTableBtn.onclick = function() {
+              document.getElementById('csvTableModal').classList.add('active');
+            };
+            if (modalContent) {
+              modalContent.insertAdjacentElement('afterbegin', showTableBtn);
+            }
+          }
+
+          // Create CSV table modal if not exists
+          if (!document.getElementById('csvTableModal')) {
+            const modalDiv = document.createElement('div');
+            modalDiv.id = 'csvTableModal';
+            modalDiv.className = 'modal';
+            modalDiv.innerHTML = `
+              <div class="modal-content bg-white rounded-3xl shadow-2xl mx-2 sm:mx-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white rounded-t-3xl px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center border-b border-gray-100">
+                  <h3 class="text-base sm:text-lg font-bold text-gray-800">CSV Data Table</h3>
+                  <button onclick="document.getElementById('csvTableModal').classList.remove('active')"
+                    class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 text-2xl transition-all">×</button>
+                </div>
+                <div id="csvTableModalBody" class="p-4 sm:p-6"></div>
+              </div>
+            `;
+            document.body.appendChild(modalDiv);
+          }
+
+          // Build full CSV table HTML for modal
+          let fullTableHtml = '<div class="bg-gray-50 rounded-xl p-3 mb-3 overflow-hidden" style="max-height: 70vh;"><div class="overflow-x-auto overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none; max-height: inherit;"><div style="-webkit-overflow-scrolling: touch;">';
+          if (csvHeaders && csvData && csvData.length > 0) {
+            fullTableHtml += '<table class="min-w-full text-xs border border-gray-200 rounded-lg overflow-x-auto"><thead class="sticky top-0 bg-gray-100 z-10"><tr>';
+            csvHeaders.forEach(h => {
+              fullTableHtml += `<th class="border-b px-2 py-2 text-left font-medium">${h}</th>`;
+            });
+            fullTableHtml += '</tr></thead><tbody class="bg-white">';
+            csvData.forEach(row => {
+              fullTableHtml += '<tr>';
+              csvHeaders.forEach(h => {
+                fullTableHtml += `<td class="border-b px-2 py-1">${row[h] || ''}</td>`;
+              });
+              fullTableHtml += '</tr>';
+            });
+            fullTableHtml += '</tbody></table>';
+            fullTableHtml += `</div></div><div class="text-gray-500 mt-2">Total rows: ${csvData.length}</div>`;
+          } else {
+            fullTableHtml += '<div class="text-gray-500">No data found in CSV.</div>';
+          }
+          fullTableHtml += '</div>';
+          document.getElementById('csvTableModalBody').innerHTML = fullTableHtml;
+
+          // Update selects and mapping options immediately to hide already-selected headers
+          updateAvailableOptions();
+
+          // Show mapping modal
+          document.getElementById("mappingModal").classList.add("active");
+        } catch (err) {
+          alert("❌ Error processing CSV: " + err.message);
+          console.error("Processing error:", err);
         }
-
+      },
+      error: function (err) {
+        alert("❌ Error parsing CSV: " + err.message);
+        console.error("PapaParse error:", err);
       }
+    });
+  } catch (error) {
+    alert("❌ Error handling file: " + error.message);
+    console.error("File handling error:", error);
+  } finally {
+    event.target.value = ""; // reset file input
+  }
+}
+
 
       // Handle OAuth callback
       async function handleOAuthCallback() {
@@ -3449,7 +3637,8 @@
 
           // Add customer details from the item
           if (item.customerDetails) {
-            const details = item.customerDetails.split(' | ');
+            // Prefer newline-separated details (newer format). Fall back to pipe-separated for legacy data.
+            const details = item.customerDetails.includes('\n') ? item.customerDetails.split('\n') : item.customerDetails.split(' | ');
             details.forEach(detail => {
               if (detail && detail.trim()) customerDetails.push(detail.trim());
             });
@@ -3978,7 +4167,7 @@
       // Initialize authentication and app
       checkAuthentication();
     </script>
-  </div> <!-- End of mainApp -->w
+  </div> <!-- End of mainApp -->
 </body>
 
 </html>
