@@ -11,54 +11,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    html {
-      font-size: 15px;
-    }
-    body {
-      font-size: 1rem;
-    }
-    h1, .text-2xl, .font-bold {
-      font-size: 1.35rem !important;
-    }
-    h2, .text-xl {
-      font-size: 1.18rem !important;
-    }
-    h3, .text-lg {
-      font-size: 1.08rem !important;
-    }
-    h4, .text-base {
-      font-size: 1rem !important;
-    }
-    .text-sm {
-      font-size: 0.98rem !important;
-    }
-    .text-xs {
-      font-size: 0.92rem !important;
-    }
-    input, select, textarea, button {
-      font-size: 1.05rem;
-    }
-    .badge {
-      font-size: 0.95rem !important;
-    }
-    .tab-active, .tab-inactive {
-      font-size: 1.08rem !important;
-    }
-    .chip-filter, .callback-chip-filter {
-      font-size: 0.98rem !important;
-    }
-    .card h3 {
-      font-size: 1.08rem !important;
-    }
-    .card p, .card span {
-      font-size: 0.98rem !important;
-    }
-    .modal h3 {
-      font-size: 1.18rem !important;
-    }
-    select option {
-      font-size: 1rem !important;
-    }
     body {
       font-family: 'Inter', sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -296,11 +248,7 @@
     .tab-active {
       background: white;
       color: #1f2937;
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-      border: 2px solid #3b82f6;
-      font-weight: 600;
-      transform: translateY(-1px);
-      transition: all 0.2s ease;
+
     }
 
     .modal {
@@ -741,7 +689,7 @@
           <!-- Center: Title and Subtitle -->
           <div class="flex flex-col items-center flex-1">
             <span class="text-base font-semibold text-gray-900 leading-tight" style="margin-bottom:-2px;">TFC Nexus</span>
-            <span class="text-xs text-gray-500">Call Management System</span>
+            <span class="text-xs text-gray-500">Call Managment system</span>
           </div>
           <!-- Right: Logout Icon -->
           <div class="flex items-center">
@@ -977,42 +925,82 @@
   <div id="cardsContainer" class="px-3 sm:px-5 pt-3 pb-6 space-y-3 sm:space-y-4 hidden"></div>
 
     <!-- Navigation Tabs (moved to bottom) -->
-    <nav class="fixed bottom-0 left-0 w-full z-50 px-3 sm:px-4 pb-2 bg-white border-t border-gray-200" style="display: flex; justify-content: center;">
-      <div class="flex gap-1 bg-gray-100 p-0.5 rounded-lg overflow-x-auto scrollbar-hide w-full max-w-4xl mx-auto">
-        <button onclick="switchTab('home')" id="tab-home"
-          class="tab-active px-8 sm:px-10 py-1.5 text-[10px] sm:text-xs font-medium rounded-md whitespace-nowrap flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M4 10v10a1 1 0 001 1h3m10-11v11a1 1 0 01-1 1h-3m-4 0h4"/></svg>
-        </button>
-        <button onclick="switchTab('all')" id="tab-all"
-          class="flex-1 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 rounded-md hover:bg-white hover:text-gray-700 transition-all border-2 border-transparent whitespace-nowrap min-w-0">
-          <span class="relative inline-block">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            <span id="count-all" class="absolute -top-2 -right-2 text-white w-[20px] h-[20px] flex items-center justify-center text-[10px] font-normal shadow backdrop-blur-[4px]" style="border-radius:50%; background:rgba(220,38,38,0.45); box-shadow:0 2px 8px 0 rgba(220,38,38,0.15);">0</span>
-          </span>
-        </button>
-        <button onclick="switchTab('pending')" id="tab-pending"
-          class="flex-1 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 rounded-md hover:bg-white hover:text-gray-700 transition-all border-2 border-transparent whitespace-nowrap min-w-0">
-          <span class="relative inline-block">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span id="count-pending" class="absolute -top-2 -right-2 text-white w-[20px] h-[20px] flex items-center justify-center text-[10px] font-normal shadow backdrop-blur-[4px]" style="border-radius:50%; background:rgba(220,38,38,0.45); box-shadow:0 2px 8px 0 rgba(220,38,38,0.15);">0</span>
-          </span>
-        </button>
-        <button onclick="switchTab('contacted')" id="tab-contacted"
-          class="flex-1 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 rounded-md hover:bg-white hover:text-gray-700 transition-all border-2 border-transparent whitespace-nowrap min-w-0">
-          <span class="relative inline-block">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            <span id="count-contacted" class="absolute -top-2 -right-2 text-white w-[20px] h-[20px] flex items-center justify-center text-[10px] font-normal shadow backdrop-blur-[4px]" style="border-radius:50%; background:rgba(220,38,38,0.45); box-shadow:0 2px 8px 0 rgba(220,38,38,0.15);">0</span>
-          </span>
-        </button>
-        <button onclick="switchTab('callback')" id="tab-callback"
-          class="flex-1 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 rounded-md hover:bg-white hover:text-gray-700 transition-all border-2 border-transparent whitespace-nowrap min-w-0">
-          <span class="relative inline-block">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-            <span id="count-callback" class="absolute -top-2 -right-2 text-white w-[20px] h-[20px] flex items-center justify-center text-[10px] font-normal shadow backdrop-blur-[4px]" style="border-radius:50%; background:rgba(220,38,38,0.45); box-shadow:0 2px 8px 0 rgba(220,38,38,0.15);">0</span>
-          </span>
-        </button>
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-white border-t border-gray-200 py-2 shadow-sm">
+  <div class="flex justify-between items-center max-w-md mx-auto px-4">
+    <!-- Home -->
+    <button onclick="switchTab('home')" id="tab-home"
+      class="flex flex-col items-center flex-1 min-w-[3rem]">
+      <div class="p-1 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25A2.25 2.25 0 018.25 10.5H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+        </svg>
       </div>
-    </nav>
+      <span class="mt-0.5 text-[10px] font-medium">Home</span>
+    </button>
+
+    <!-- All -->
+    <button onclick="switchTab('all')" id="tab-all"
+      class="relative flex flex-col items-center flex-1 min-w-[3rem]">
+      <div class="p-1 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      </div>
+      <span class="mt-0.5 text-[10px] font-medium">All</span>
+      <span id="count-all"
+        class="absolute -top-1 right-2 text-white w-[16px] h-[16px] flex items-center justify-center text-[9px] font-medium rounded-full bg-red-600 shadow-sm">0</span>
+    </button>
+
+    <!-- Pending -->
+    <button onclick="switchTab('pending')" id="tab-pending"
+      class="relative flex flex-col items-center flex-1 min-w-[3rem]">
+      <div class="p-1 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <span class="mt-0.5 text-[10px] font-medium">Pending</span>
+      <span id="count-pending"
+        class="absolute -top-1 right-2 text-white w-[16px] h-[16px] flex items-center justify-center text-[9px] font-medium rounded-full bg-red-600 shadow-sm">0</span>
+    </button>
+
+    <!-- Contacted -->
+    <button onclick="switchTab('contacted')" id="tab-contacted"
+      class="relative flex flex-col items-center flex-1 min-w-[3rem]">
+      <div class="p-1 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <span class="mt-0.5 text-[10px] font-medium">Contacted</span>
+      <span id="count-contacted"
+        class="absolute -top-1 right-2 text-white w-[16px] h-[16px] flex items-center justify-center text-[9px] font-medium rounded-full bg-red-600 shadow-sm">0</span>
+    </button>
+
+    <!-- Callback -->
+    <button onclick="switchTab('callback')" id="tab-callback"
+      class="relative flex flex-col items-center flex-1 min-w-[3rem]">
+      <div class="p-1 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      </div>
+      <span class="mt-0.5 text-[10px] font-medium">Callback</span>
+      <span id="count-callback"
+        class="absolute -top-1 right-2 text-white w-[16px] h-[16px] flex items-center justify-center text-[9px] font-medium rounded-full bg-red-600 shadow-sm">0</span>
+    </button>
+  </div>
+</nav>
+
 
     <!-- Footer -->
     <footer class="px-3 sm:px-4 pb-2 mt-auto">
@@ -2538,15 +2526,17 @@ function formatCustomerValue(val) {
 
         document.querySelectorAll('[id^="tab-"]').forEach(t => {
           t.classList.remove('tab-active');
-          t.classList.add('text-gray-500', 'border-transparent');
-          t.classList.remove('text-gray-700', 'border-blue-500');
+          t.classList.add('text-gray-400');
+          t.classList.remove('text-gray-900');
+         
         });
 
         // Only try to add tab-active class if the tab element exists
         const tabElement = document.getElementById(`tab-${tab}`);
         if (tabElement) {
           tabElement.classList.add('tab-active');
-          tabElement.classList.remove('text-gray-500', 'border-transparent');
+          tabElement.classList.add('text-gray-900');
+       
         }
 
         const searchBar = document.getElementById('searchBar');
