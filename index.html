@@ -11,6 +11,54 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    html {
+      font-size: 15px;
+    }
+    body {
+      font-size: 1rem;
+    }
+    h1, .text-2xl, .font-bold {
+      font-size: 1.35rem !important;
+    }
+    h2, .text-xl {
+      font-size: 1.18rem !important;
+    }
+    h3, .text-lg {
+      font-size: 1.08rem !important;
+    }
+    h4, .text-base {
+      font-size: 1rem !important;
+    }
+    .text-sm {
+      font-size: 0.98rem !important;
+    }
+    .text-xs {
+      font-size: 0.92rem !important;
+    }
+    input, select, textarea, button {
+      font-size: 1.05rem;
+    }
+    .badge {
+      font-size: 0.95rem !important;
+    }
+    .tab-active, .tab-inactive {
+      font-size: 1.08rem !important;
+    }
+    .chip-filter, .callback-chip-filter {
+      font-size: 0.98rem !important;
+    }
+    .card h3 {
+      font-size: 1.08rem !important;
+    }
+    .card p, .card span {
+      font-size: 0.98rem !important;
+    }
+    .modal h3 {
+      font-size: 1.18rem !important;
+    }
+    select option {
+      font-size: 1rem !important;
+    }
     body {
       font-family: 'Inter', sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -685,19 +733,23 @@
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
       <div class="px-3 sm:px-4 py-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2 sm:gap-3">
-            <div>
-              <h1 class="text-base sm:text-lg font-semibold text-gray-900">Insurance CRM</h1>
-              <p class="text-xs text-gray-500 hidden sm:block">Policy Management</p>
-            </div>
+        <div class="flex items-center justify-between w-full">
+          <!-- Left: Avatar -->
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center text-white text-lg font-medium select-none" id="userAvatar">D</div>
           </div>
-          <div class="flex items-center gap-2">
-            <div id="userInfo" class="user-info hidden cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-all"
-              onclick="openSettings()">
-              <div class="user-avatar" id="userAvatar">A</div>
-              <!-- <div class="text-sm font-semibold text-gray-800 hidden" id="userName">User</div> -->
-            </div>
+          <!-- Center: Title and Subtitle -->
+          <div class="flex flex-col items-center flex-1">
+            <span class="text-base font-semibold text-gray-900 leading-tight" style="margin-bottom:-2px;">TFC Nexus</span>
+            <span class="text-xs text-gray-500">Call Management System</span>
+          </div>
+          <!-- Right: Logout Icon -->
+          <div class="flex items-center">
+            <button onclick="handleLogout()" title="Logout" class="p-2 rounded-full hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#ef4444" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
