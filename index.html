@@ -1711,8 +1711,8 @@
             console.log('Rendering cards with', data.length, 'records');
             updateCounts();
 
-            // Send user ID to Flutter
-            sendUserToFlutter(userData.user_id);
+            // Send login state to Flutter
+            sendUserToFlutter(userData.user_id, 'login');
 
             // Clear form
             document.getElementById('email').value = '';
@@ -1896,24 +1896,33 @@
             console.error('Error signing out from Supabase:', error);
           }
 
+          // Store user ID before clearing
+          const lastUserId = currentUserId;
+          
           localStorage.removeItem(AUTH_STORAGE_KEY);
           currentUser = null;
           currentUserId = null;
           currentUserRole = null;
           isAuthenticated = false;
 
+          // Send logout state to Flutter with the last known user ID
+          if (lastUserId) {
+            sendUserToFlutter(lastUserId, 'logout');
+          }
+
           showLogin();
           showNotification('You have been logged out successfully.', 'info');
         }
       }
 
-      // Function to communicate with Flutter when user logs in
-      function sendUserToFlutter(userId) {
+      // Function to communicate with Flutter for authentication state changes
+      function sendUserToFlutter(userId, state = 'login') {
         if (window.flutter_inappwebview) {
           window.flutter_inappwebview.callHandler("flutterBridge", { 
-            user_id: userId 
+            user_id: userId,
+            auth_state: state // 'login' or 'logout'
           }).then(function(response) {
-            console.log("✅ Flutter received user ID:", response);
+            console.log(`✅ Flutter received auth state (${state}):`, response);
           });
         } else {
           console.warn("⚠️ Flutter bridge not available");
