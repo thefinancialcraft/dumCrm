@@ -1609,6 +1609,9 @@
                 await loadDispositions();
                 updateCounts();
 
+                // Send logged-in state to Flutter
+                sendUserToFlutter(userData.user_id, 'login');
+
                 // Initialize mapping modal
                 if (!document.getElementById('mappingModal')) {
                   document.body.insertAdjacentHTML('beforeend', mappingModalHtml);
@@ -1617,18 +1620,26 @@
                 // User not found or inactive
                 localStorage.removeItem(AUTH_STORAGE_KEY);
                 showLogin();
+                // Send logged-out state to Flutter
+                sendUserToFlutter(null, 'logout');
               }
             } else {
               // Session expired
               localStorage.removeItem(AUTH_STORAGE_KEY);
               showLogin();
+              // Send logged-out state to Flutter
+              sendUserToFlutter(null, 'logout');
             }
           } catch (e) {
             localStorage.removeItem(AUTH_STORAGE_KEY);
             showLogin();
+            // Send logged-out state to Flutter
+            sendUserToFlutter(null, 'logout');
           }
         } else {
           showLogin();
+          // Send logged-out state to Flutter
+          sendUserToFlutter(null, 'logout');
         }
       }
 
@@ -1920,7 +1931,10 @@
         if (window.flutter_inappwebview) {
           window.flutter_inappwebview.callHandler("flutterBridge", { 
             user_id: userId,
-            auth_state: state // 'login' or 'logout'
+            user_email: currentUser,
+            user_role: currentUserRole,
+            auth_state: state, // 'login' or 'logout'
+            is_authenticated: isAuthenticated
           }).then(function(response) {
             console.log(`✅ Flutter received auth state (${state}):`, response);
           });
