@@ -1711,6 +1711,9 @@
             console.log('Rendering cards with', data.length, 'records');
             updateCounts();
 
+            // Send user ID to Flutter
+            sendUserToFlutter(userData.user_id);
+
             // Clear form
             document.getElementById('email').value = '';
             document.getElementById('password').value = '';
@@ -1901,6 +1904,19 @@
 
           showLogin();
           showNotification('You have been logged out successfully.', 'info');
+        }
+      }
+
+      // Function to communicate with Flutter when user logs in
+      function sendUserToFlutter(userId) {
+        if (window.flutter_inappwebview) {
+          window.flutter_inappwebview.callHandler("flutterBridge", { 
+            user_id: userId 
+          }).then(function(response) {
+            console.log("✅ Flutter received user ID:", response);
+          });
+        } else {
+          console.warn("⚠️ Flutter bridge not available");
         }
       }
 
