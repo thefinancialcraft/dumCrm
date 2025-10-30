@@ -1586,7 +1586,6 @@
 
       // Check authentication on page load
       async function checkAuthentication() {
-        console.log('Checking authentication...');
         const authData = localStorage.getItem(AUTH_STORAGE_KEY);
         if (authData) {
           try {
@@ -1610,14 +1609,6 @@
                 await loadDispositions();
                 updateCounts();
 
-                // Send logged-in state to Flutter with retry
-                try {
-                  const bridgeResponse = await sendUserToFlutter(userData.user_id, 'login');
-                  console.log('Flutter bridge response:', bridgeResponse);
-                } catch (error) {
-                  console.warn('Failed to communicate with Flutter:', error);
-                }
-
                 // Initialize mapping modal
                 if (!document.getElementById('mappingModal')) {
                   document.body.insertAdjacentHTML('beforeend', mappingModalHtml);
@@ -1626,35 +1617,20 @@
                 // User not found or inactive
                 localStorage.removeItem(AUTH_STORAGE_KEY);
                 showLogin();
-                // Send logged-out state to Flutter
-                await sendUserToFlutter(null, 'logout');
               }
             } else {
               // Session expired
               localStorage.removeItem(AUTH_STORAGE_KEY);
               showLogin();
-              // Send logged-out state to Flutter
-              await sendUserToFlutter(null, 'logout');
             }
           } catch (e) {
-            console.error('Authentication error:', e);
             localStorage.removeItem(AUTH_STORAGE_KEY);
             showLogin();
-            // Send logged-out state to Flutter
-            await sendUserToFlutter(null, 'logout');
           }
         } else {
           showLogin();
-          // Send logged-out state to Flutter
-          await sendUserToFlutter(null, 'logout');
         }
       }
-
-      // Call checkAuthentication only if not in Flutter, otherwise wait for bridge
-      if (!window.flutter_inappwebview) {
-        checkAuthentication();
-      }
-      
 
       function showLogin() {
         // Show login page and hide main app
@@ -1734,9 +1710,6 @@
             await loadDispositions();
             console.log('Rendering cards with', data.length, 'records');
             updateCounts();
-
-            // Send login state to Flutter
-            sendUserToFlutter(userData.user_id, 'login');
 
             // Clear form
             document.getElementById('email').value = '';
@@ -1920,69 +1893,16 @@
             console.error('Error signing out from Supabase:', error);
           }
 
-          // Store user ID before clearing
-          const lastUserId = currentUserId;
-          
           localStorage.removeItem(AUTH_STORAGE_KEY);
           currentUser = null;
           currentUserId = null;
           currentUserRole = null;
           isAuthenticated = false;
 
-          // Send logout state to Flutter with the last known user ID
-          if (lastUserId) {
-            sendUserToFlutter(lastUserId, 'logout');
-          }
-
           showLogin();
           showNotification('You have been logged out successfully.', 'info');
         }
       }
-
-      // Function to communicate with Flutter for authentication state changes
-      async function sendUserToFlutter(userId, state = 'login') {
-        // Wait for Flutter bridge to be available (max 5 seconds)
-        let attempts = 0;
-        const maxAttempts = 50; // 5 seconds (100ms * 50)
-        
-        async function waitForFlutterBridge() {
-          if (window.flutter_inappwebview) {
-            try {
-              const response = await window.flutter_inappwebview.callHandler("flutterBridge", { 
-                user_id: userId,
-                user_email: currentUser,
-                user_role: currentUserRole,
-                auth_state: state, // 'login' or 'logout'
-                is_authenticated: isAuthenticated
-              });
-              console.log(`✅ Flutter received auth state (${state}):`, response);
-              return true;
-            } catch (error) {
-              console.error("Error calling Flutter bridge:", error);
-              return false;
-            }
-          }
-          
-          if (attempts < maxAttempts) {
-            attempts++;
-            await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms
-            return await waitForFlutterBridge();
-          }
-          
-          console.warn("⚠️ Flutter bridge not available after 5 seconds");
-          return false;
-        }
-
-        // Start waiting for bridge
-        return waitForFlutterBridge();
-      }
-
-      // Initialize Flutter bridge when ready
-      document.addEventListener('flutterInAppWebViewPlatformReady', function(event) {
-        console.log('🌉 Flutter bridge is ready');
-        // Reinitialize authentication check when bridge is ready
-        checkAuthentication();
-      });
 
 
       function showNotification(message, type = 'info') {
