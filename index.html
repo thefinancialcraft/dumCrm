@@ -1703,6 +1703,13 @@
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
             console.log('Login successful, session created for user:', userData.email);
 
+            // Notify Flutter about login event
+            try {
+              sendToFlutter('login', { userId: userData.user_id, timestamp: Date.now() });
+            } catch (e) {
+              console.log('sendToFlutter login error:', e);
+            }
+
             showMainApp();
 
             // Set user context and load data
@@ -1891,6 +1898,23 @@
             await supabase.auth.signOut();
           } catch (error) {
             console.error('Error signing out from Supabase:', error);
+          }
+
+          // Notify Flutter about logout event (use last known userId if available)
+          try {
+            if (currentUserId) {
+              sendToFlutter('logout', { userId: currentUserId, timestamp: Date.now() });
+            } else {
+              const session = localStorage.getItem(AUTH_STORAGE_KEY);
+              if (session) {
+                const parsed = JSON.parse(session);
+                if (parsed?.userId) {
+                  sendToFlutter('logout', { userId: parsed.userId, timestamp: Date.now() });
+                }
+              }
+            }
+          } catch (e) {
+            console.log('sendToFlutter logout error:', e);
           }
 
           localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -4522,6 +4546,54 @@ return metrics;
         event.target.value = '';
       }
 
+
+// Simple logger used for Flutter bridge messages
+function log(message) {
+       try { console.log(message); } catch (e) {}
+     }
+
+// Send message to Flutter
+function sendToFlutter(type, value) {
+       const payload = { type, value };
+       try {
+         if (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') {
+           window.flutter_inappwebview.callHandler("fromWebApp", payload).then(function () {
+             log("📤 Sent to Flutter: " + type);
+           });
+           return;
+         }
+
+         // WebView2 (Edge) fallback
+         if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+           window.chrome.webview.postMessage(payload);
+           log("📤 Sent to Flutter (webview2): " + type);
+           return;
+         }
+
+         // iOS WKWebView message handler (custom channel name example)
+         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.fromWebApp && typeof window.webkit.messageHandlers.fromWebApp.postMessage === 'function') {
+           window.webkit.messageHandlers.fromWebApp.postMessage(payload);
+           log("📤 Sent to Flutter (webkit): " + type);
+           return;
+         }
+
+         // Parent window (generic) fallback
+         if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+           window.parent.postMessage(payload, '*');
+           log("📤 Sent to parent window: " + type);
+           return;
+         }
+
+         log("❌ Flutter bridge not available");
+       } catch (err) {
+         console.log('sendToFlutter error:', err);
+       }
+     }
+
+      // Receive message from Flutter
+      window.fromFlutter = function (data) {
+        log("📥 From Flutter: " + JSON.stringify(data));
+      };
       // Initialize authentication and app
       checkAuthentication();
     </script>
