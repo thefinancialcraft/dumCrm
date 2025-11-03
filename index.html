@@ -1677,6 +1677,8 @@
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
 
+        console.log('🔐 handleLogin called with email:', email);
+
         try {
           // Authenticate with database
           const userData = await authenticateUser(email, password);
@@ -1705,6 +1707,8 @@
 
             // Notify Flutter about login event
             try {
+              const loginPayload = { userId: userData.user_id, timestamp: Date.now() };
+              console.log('➡️ Preparing to send login payload to Flutter:', loginPayload);
               sendToFlutter('login', { userId: userData.user_id, timestamp: Date.now() });
             } catch (e) {
               console.log('sendToFlutter login error:', e);
@@ -1723,6 +1727,7 @@
             document.getElementById('password').value = '';
 
             showMessage(`Welcome ${userData.name}! (${userData.role})`, 'success');
+            console.log('✅ Login flow completed for user:', userData.user_id);
           }
         } catch (error) {
           console.error('Login error:', error);
@@ -1892,10 +1897,12 @@
       }
 
       async function handleLogout() {
+        console.log('🚪 handleLogout called. Current userId:', currentUserId);
         if (confirm('Are you sure you want to logout?')) {
           try {
             // Sign out from Supabase
             await supabase.auth.signOut();
+            console.log('✅ Supabase signOut completed');
           } catch (error) {
             console.error('Error signing out from Supabase:', error);
           }
@@ -1903,12 +1910,14 @@
           // Notify Flutter about logout event (use last known userId if available)
           try {
             if (currentUserId) {
+              console.log('➡️ Preparing to send logout payload to Flutter:', { userId: currentUserId, timestamp: Date.now() });
               sendToFlutter('logout', { userId: currentUserId, timestamp: Date.now() });
             } else {
               const session = localStorage.getItem(AUTH_STORAGE_KEY);
               if (session) {
                 const parsed = JSON.parse(session);
                 if (parsed?.userId) {
+                  console.log('➡️ Preparing to send logout payload (from session) to Flutter:', { userId: parsed.userId, timestamp: Date.now() });
                   sendToFlutter('logout', { userId: parsed.userId, timestamp: Date.now() });
                 }
               }
@@ -4556,6 +4565,7 @@ function log(message) {
 function sendToFlutter(type, value) {
        const payload = { type, value };
        try {
+         log("🛰️ sendToFlutter called with payload: " + JSON.stringify(payload));
          if (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') {
            window.flutter_inappwebview.callHandler("fromWebApp", payload).then(function () {
              log("📤 Sent to Flutter: " + type);
@@ -4594,7 +4604,9 @@ function sendToFlutter(type, value) {
       window.fromFlutter = function (data) {
         log("📥 From Flutter: " + JSON.stringify(data));
       };
+      log('🔧 Flutter bridge receiver initialized: window.fromFlutter ready');
       // Initialize authentication and app
+      log('🚀 Initializing app and checking authentication...');
       checkAuthentication();
     </script>
   </div> <!-- End of mainApp -->
