@@ -11,6 +11,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    .hidden {
+      display: none !important;
+    }
+
     body {
       font-family: 'Inter', sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -580,7 +584,7 @@
 
   <!-- Simple Login Page -->
   <div class="login-page">
-    <div class="login-container">
+    <div class="login-container" id="loginContainer">
       <div class="text-center mb-6">
         <div
           class="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl">
@@ -916,6 +920,35 @@
             </div>
           </div>
         </div>
+
+        <!-- Flutter Bridge Message Log Widget -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-4 sm:p-6 border-2 border-blue-100 shadow-sm mt-4">
+          <div class="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+            <div
+              class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl flex-shrink-0 mx-auto sm:mx-0">
+              💬
+            </div>
+            <div class="flex-1 w-full">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base sm:text-lg font-bold text-gray-800">Flutter Bridge Messages</h3>
+                  <div id="connectionStatus" class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100">
+                    <span id="connectionIndicator" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                    <span id="connectionText" class="text-xs font-medium text-gray-600">Checking...</span>
+                  </div>
+                </div>
+                <button onclick="clearMessageLog()" 
+                  class="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded-lg hover:bg-blue-100 transition">
+                  Clear
+                </button>
+              </div>
+              <div id="flutterMessageLog" 
+                class="bg-white rounded-xl p-3 sm:p-4 border border-gray-200 max-h-64 overflow-y-auto space-y-2">
+                <div class="text-xs text-gray-500 text-center py-2">No messages yet...</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1097,8 +1130,11 @@
       const SUPABASE_URL = 'https://eigisleuqfshwqiasvxw.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2lzbGV1cWZzaHdxaWFzdnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMTIzMTcsImV4cCI6MjA3NTc4ODMxN30.GuZb5q_dDElI2gBuQZVFgNqH-2UHO_q9QOQ6hKknO4A';
 
-      // Initialize Supabase client
-      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // Initialize Supabase client (check for existing declaration to avoid duplicate)
+      if (!window._supabaseClient) {
+        window._supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      var supabase = window._supabaseClient;
 
       // Silent sync function to update data without UI refresh
       async function silentSync() {
@@ -1607,6 +1643,10 @@
                 console.log('User authenticated successfully:', currentUser);
                 await setUserContext(currentUserId);
                 await loadDispositions();
+                // Ensure cards are rendered after authentication
+                if (currentTab !== 'home') {
+                  renderCards();
+                }
                 updateCounts();
 
                 // Initialize mapping modal
@@ -1677,6 +1717,8 @@
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
 
+        console.log('🔐 handleLogin called with email:', email);
+
         try {
           // Authenticate with database
           const userData = await authenticateUser(email, password);
@@ -1705,6 +1747,8 @@
 
             // Notify Flutter about login event
             try {
+              const loginPayload = { userId: userData.user_id, timestamp: Date.now() };
+              console.log('➡️ Preparing to send login payload to Flutter:', loginPayload);
               sendToFlutter('login', { userId: userData.user_id, timestamp: Date.now() });
             } catch (e) {
               console.log('sendToFlutter login error:', e);
@@ -1716,6 +1760,10 @@
             await setUserContext(currentUserId);
             await loadDispositions();
             console.log('Rendering cards with', data.length, 'records');
+            // Ensure cards are rendered after login
+            if (currentTab !== 'home') {
+              renderCards();
+            }
             updateCounts();
 
             // Clear form
@@ -1723,12 +1771,16 @@
             document.getElementById('password').value = '';
 
             showMessage(`Welcome ${userData.name}! (${userData.role})`, 'success');
+            console.log('✅ Login flow completed for user:', userData.user_id);
           }
         } catch (error) {
           console.error('Login error:', error);
           showMessage('Invalid credentials. Please try again.', 'error');
         }
       }
+
+      // Make function globally accessible for onsubmit handlers
+      window.handleLogin = handleLogin;
 
       function showMessage(message, type) {
         const errorDiv = document.getElementById('errorMessage');
@@ -1775,9 +1827,12 @@
         }
       }
 
+      // Make function globally accessible for onclick handlers
+      window.handleGoogleLogin = handleGoogleLogin;
+
       // Toggle between login and signup forms
       function toggleSignupForm() {
-        const loginContainer = document.querySelector('.login-page > .login-container:not(#signupContainer)');
+        const loginContainer = document.getElementById('loginContainer');
         const signupContainer = document.getElementById('signupContainer');
 
         if (signupContainer.classList.contains('hidden')) {
@@ -1796,6 +1851,9 @@
         document.getElementById('signupErrorMessage').classList.add('hidden');
         document.getElementById('signupSuccessMessage').classList.add('hidden');
       }
+      
+      // Make function globally accessible for onclick handlers
+      window.toggleSignupForm = toggleSignupForm;
 
       // Handle user signup
       async function handleSignup(event) {
@@ -1831,42 +1889,24 @@
           const userData = await createNewUser(name, email, password);
 
           if (userData) {
-            // Auto-login the user after successful signup
-            currentUser = userData.email;
-            currentUserId = userData.user_id;
-            currentUserRole = userData.role || 'user';
-            isAuthenticated = true;
+          // Clear form
+          document.getElementById('signupName').value = '';
+          document.getElementById('signupEmail').value = '';
+          document.getElementById('signupPassword').value = '';
+          document.getElementById('confirmPassword').value = '';
 
-            // Create session
-            const sessionData = {
-              user: userData.email,
-              userId: userData.user_id,
-              loginTime: new Date().getTime(),
-              expiresAt: new Date().getTime() + (24 * 60 * 60 * 1000),
-              provider: 'email'
-            };
-
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
-            showMainApp();
-
-            // Set user context and load data
-            await setUserContext(currentUserId);
-            await loadDispositions();
-            updateCounts();
-
-            // Clear form
-            document.getElementById('signupName').value = '';
-            document.getElementById('signupEmail').value = '';
-            document.getElementById('signupPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
-
-            showSignupMessage(`Welcome ${userData.name}! Your account has been created successfully.`, 'success');
+          // Switch back to login form and show success message
+          toggleSignupForm();
+          showMessage(`Account created for ${userData.email}. Please sign in.`, 'success');
           }
         } catch (error) {
           console.error('Signup error:', error);
           showSignupMessage(error.message || 'Failed to create account. Please try again.', 'error');
         }
       }
+
+      // Make function globally accessible for onsubmit handlers
+      window.handleSignup = handleSignup;
 
       // Show signup messages
       function showSignupMessage(message, type) {
@@ -1892,10 +1932,12 @@
       }
 
       async function handleLogout() {
+        console.log('🚪 handleLogout called. Current userId:', currentUserId);
         if (confirm('Are you sure you want to logout?')) {
           try {
             // Sign out from Supabase
             await supabase.auth.signOut();
+            console.log('✅ Supabase signOut completed');
           } catch (error) {
             console.error('Error signing out from Supabase:', error);
           }
@@ -1903,12 +1945,14 @@
           // Notify Flutter about logout event (use last known userId if available)
           try {
             if (currentUserId) {
+              console.log('➡️ Preparing to send logout payload to Flutter:', { userId: currentUserId, timestamp: Date.now() });
               sendToFlutter('logout', { userId: currentUserId, timestamp: Date.now() });
             } else {
               const session = localStorage.getItem(AUTH_STORAGE_KEY);
               if (session) {
                 const parsed = JSON.parse(session);
                 if (parsed?.userId) {
+                  console.log('➡️ Preparing to send logout payload (from session) to Flutter:', { userId: parsed.userId, timestamp: Date.now() });
                   sendToFlutter('logout', { userId: parsed.userId, timestamp: Date.now() });
                 }
               }
@@ -1927,6 +1971,9 @@
           showNotification('You have been logged out successfully.', 'info');
         }
       }
+
+      // Make function globally accessible for onclick handlers
+      window.handleLogout = handleLogout;
 
 
       function showNotification(message, type = 'info') {
@@ -2272,6 +2319,7 @@ function formatCustomerValue(val) {
         if (currentTab !== 'home') {
           cardsContainer.classList.remove('hidden');
           searchBar.classList.remove('hidden');
+          console.log('Rendering cards after loadDispositions, data length:', data.length);
           renderCards();
         } else {
           cardsContainer.classList.add('hidden');
@@ -2314,7 +2362,14 @@ function formatCustomerValue(val) {
 
       function renderCards() {
         const container = document.getElementById("cardsContainer");
-        const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+        const searchTerm = document.getElementById("searchInput")?.value.toLowerCase() || '';
+        
+        console.log('renderCards called - data length:', data.length, 'currentTab:', currentTab);
+
+        if (!container) {
+          console.error('cardsContainer not found');
+          return;
+        }
 
         container.innerHTML = '';
 
@@ -3831,6 +3886,10 @@ return metrics;
             // Set user context and load data
             await setUserContext(currentUserId);
             await loadDispositions();
+            // Ensure cards are rendered after OAuth callback
+            if (currentTab !== 'home') {
+              renderCards();
+            }
             updateCounts();
 
             showMessage(`Welcome! You are now logged in with Google as ${user.email}`, 'success');
@@ -3870,6 +3929,10 @@ return metrics;
           // Set user context and load data
           await setUserContext(currentUserId);
           await loadDispositions();
+          // Ensure cards are rendered after OAuth login
+          if (currentTab !== 'home') {
+            renderCards();
+          }
           updateCounts();
 
           showMessage(`Welcome! You are now logged in with Google as ${user.email}`, 'success');
@@ -4549,53 +4612,271 @@ return metrics;
 
 // Simple logger used for Flutter bridge messages
 function log(message) {
-       try { console.log(message); } catch (e) {}
-     }
+  try { console.log(message); } catch (e) {}
+}
+
+// Add message to Flutter bridge log widget
+function addMessageToLog(direction, type, payload, status = 'success') {
+  try {
+    const logContainer = document.getElementById('flutterMessageLog');
+    if (!logContainer) return;
+
+    // Remove "No messages yet..." placeholder
+    const placeholder = logContainer.querySelector('.text-center');
+    if (placeholder) placeholder.remove();
+
+    const timestamp = new Date().toLocaleTimeString();
+    const isSent = direction === 'sent';
+    const bgColor = isSent ? 'bg-blue-50' : 'bg-green-50';
+    const borderColor = isSent ? 'border-blue-300' : 'border-green-300';
+    const icon = isSent ? '📤' : '📥';
+    const directionText = isSent ? 'App → Flutter' : 'Flutter → App';
+    const directionColor = isSent ? 'text-blue-700' : 'text-green-700';
+    const statusIcon = status === 'error' ? '❌' : (status === 'success' ? '✅' : '⚠️');
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `${bgColor} ${borderColor} border-2 rounded-lg p-3 text-xs shadow-sm`;
+    messageDiv.innerHTML = `
+      <div class="flex items-start gap-2">
+        <span class="text-lg">${icon}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold ${directionColor} text-sm">${directionText}</span>
+            <span class="text-gray-500 text-xs font-mono">${timestamp}</span>
+          </div>
+          <div class="text-gray-700 mb-2">
+            <span class="font-semibold">Type:</span> <span class="text-blue-600 font-bold">${type}</span>
+            ${status !== 'success' ? `<span class="ml-2 text-red-600">${statusIcon}</span>` : `<span class="ml-2 text-green-600">${statusIcon}</span>`}
+          </div>
+          <div class="text-gray-700 bg-white rounded p-2 mt-1 font-mono text-xs break-all border border-gray-200 overflow-x-auto">
+            ${JSON.stringify(payload, null, 2)}
+          </div>
+        </div>
+      </div>
+    `;
+
+    logContainer.insertBefore(messageDiv, logContainer.firstChild);
+
+    // Keep only last 50 messages
+    while (logContainer.children.length > 50) {
+      logContainer.removeChild(logContainer.lastChild);
+    }
+
+    // Auto-scroll to top to show latest message
+    logContainer.scrollTop = 0;
+  } catch (e) {
+    console.error('Error adding message to log:', e);
+  }
+}
+
+// Clear message log
+function clearMessageLog() {
+  try {
+    const logContainer = document.getElementById('flutterMessageLog');
+    if (logContainer) {
+      logContainer.innerHTML = '<div class="text-xs text-gray-500 text-center py-2">No messages yet...</div>';
+    }
+  } catch (e) {
+    console.error('Error clearing message log:', e);
+  }
+}
+
+// Check Flutter bridge connection status
+function checkFlutterConnection() {
+  try {
+    const isConnected = !!(
+      (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') ||
+      (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') ||
+      (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.fromWebApp && typeof window.webkit.messageHandlers.fromWebApp.postMessage === 'function') ||
+      (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function')
+    );
+    
+    updateConnectionStatus(isConnected);
+    return isConnected;
+  } catch (e) {
+    console.error('Error checking Flutter connection:', e);
+    updateConnectionStatus(false);
+    return false;
+  }
+}
+
+// Update connection status indicator
+function updateConnectionStatus(isConnected) {
+  try {
+    const indicator = document.getElementById('connectionIndicator');
+    const text = document.getElementById('connectionText');
+    const statusContainer = document.getElementById('connectionStatus');
+    
+    if (!indicator || !text || !statusContainer) return;
+    
+    if (isConnected) {
+      // Green - Connected
+      indicator.className = 'w-2.5 h-2.5 rounded-full bg-green-500';
+      indicator.classList.remove('animate-pulse', 'bg-red-500');
+      text.textContent = 'Connected';
+      text.className = 'text-xs font-medium text-green-700';
+      statusContainer.className = 'flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-100 border border-green-200';
+    } else {
+      // Red - Disconnected
+      indicator.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse';
+      text.textContent = 'Disconnected';
+      text.className = 'text-xs font-medium text-red-700';
+      statusContainer.className = 'flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-100 border border-red-200';
+    }
+  } catch (e) {
+    console.error('Error updating connection status:', e);
+  }
+}
 
 // Send message to Flutter
 function sendToFlutter(type, value) {
-       const payload = { type, value };
-       try {
-         if (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') {
-           window.flutter_inappwebview.callHandler("fromWebApp", payload).then(function () {
-             log("📤 Sent to Flutter: " + type);
-           });
-           return;
-         }
+  const payload = { type, value };
+  let bridgeMethod = 'unknown';
+  
+  try {
+    console.log("📤 App se Flutter ko message bhej rahe hain:", payload);
+    log("🛰️ sendToFlutter called with payload: " + JSON.stringify(payload));
+    
+    // Check and update connection status
+    checkFlutterConnection();
+    
+    // Log immediately - App se Flutter ko bhej rahe hain
+    addMessageToLog('sent', type, payload, 'success');
+    console.log("✅ Message logged in widget: App → Flutter");
+    
+    // Try Flutter InAppWebView first (most common)
+    if (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') {
+      bridgeMethod = 'InAppWebView';
+      window.flutter_inappwebview.callHandler("fromWebApp", payload).then(function (res) {
+        log("📤 Sent to Flutter (InAppWebView): " + type + " - Response: " + JSON.stringify(res));
+      }).catch(function (err) {
+        log("❌ Error sending to Flutter (InAppWebView): " + err);
+        // Update message status to error
+        updateLastMessageStatus('error', err);
+      });
+      return;
+    }
 
-         // WebView2 (Edge) fallback
-         if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
-           window.chrome.webview.postMessage(payload);
-           log("📤 Sent to Flutter (webview2): " + type);
-           return;
-         }
+    // Try WebView2 (Edge/Windows) fallback
+    if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+      bridgeMethod = 'WebView2';
+      window.chrome.webview.postMessage(payload);
+      log("📤 Sent to Flutter (WebView2): " + type);
+      return;
+    }
 
-         // iOS WKWebView message handler (custom channel name example)
-         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.fromWebApp && typeof window.webkit.messageHandlers.fromWebApp.postMessage === 'function') {
-           window.webkit.messageHandlers.fromWebApp.postMessage(payload);
-           log("📤 Sent to Flutter (webkit): " + type);
-           return;
-         }
+    // Try iOS WKWebView message handler
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.fromWebApp && typeof window.webkit.messageHandlers.fromWebApp.postMessage === 'function') {
+      bridgeMethod = 'WKWebView';
+      window.webkit.messageHandlers.fromWebApp.postMessage(payload);
+      log("📤 Sent to Flutter (WKWebView): " + type);
+      return;
+    }
 
-         // Parent window (generic) fallback
-         if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
-           window.parent.postMessage(payload, '*');
-           log("📤 Sent to parent window: " + type);
-           return;
-         }
+    // Parent window (generic) fallback
+    if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+      bridgeMethod = 'ParentWindow';
+      window.parent.postMessage(payload, '*');
+      log("📤 Sent to parent window: " + type);
+      return;
+    }
 
-         log("❌ Flutter bridge not available");
-       } catch (err) {
-         console.log('sendToFlutter error:', err);
-       }
-     }
+    log("❌ Flutter bridge not available - all methods failed");
+    updateLastMessageStatus('error', 'No bridge available');
+    console.log("Debug info:", {
+      hasFlutterInApp: !!window.flutter_inappwebview,
+      hasWebView2: !!(window.chrome && window.chrome.webview),
+      hasWKWebView: !!(window.webkit && window.webkit.messageHandlers),
+      hasParent: !!(window.parent && window.parent !== window)
+    });
+  } catch (err) {
+    console.error('❌ sendToFlutter error:', err);
+    log("❌ Exception in sendToFlutter: " + err.message);
+    updateLastMessageStatus('error', err.message);
+  }
+}
 
-      // Receive message from Flutter
-      window.fromFlutter = function (data) {
-        log("📥 From Flutter: " + JSON.stringify(data));
-      };
-      // Initialize authentication and app
-      checkAuthentication();
+// Update last message status (helper function)
+function updateLastMessageStatus(status, errorMsg) {
+  try {
+    const logContainer = document.getElementById('flutterMessageLog');
+    if (!logContainer || logContainer.children.length === 0) return;
+    
+    const lastMessage = logContainer.firstElementChild;
+    if (lastMessage && lastMessage.querySelector('.font-semibold').textContent.includes('App → Flutter')) {
+      const statusIcon = status === 'error' ? '❌' : '✅';
+      const statusEl = lastMessage.querySelector('.text-blue-600');
+      if (statusEl && statusEl.parentElement) {
+        const existingStatus = statusEl.parentElement.querySelector('.ml-2');
+        if (existingStatus) {
+          existingStatus.innerHTML = statusIcon + (errorMsg ? ' ' + errorMsg : '');
+        } else {
+          const statusSpan = document.createElement('span');
+          statusSpan.className = 'ml-2 text-red-600';
+          statusSpan.innerHTML = statusIcon + (errorMsg ? ' ' + errorMsg : '');
+          statusEl.parentElement.appendChild(statusSpan);
+        }
+      }
+      if (status === 'error') {
+        lastMessage.classList.remove('bg-blue-50', 'border-blue-200');
+        lastMessage.classList.add('bg-red-50', 'border-red-200');
+      }
+    }
+  } catch (e) {
+    console.error('Error updating message status:', e);
+  }
+}
+
+// Receive message from Flutter
+window.fromFlutter = function (data) {
+  try {
+    console.log("📥 Flutter se App me message aaya:", data);
+    log("📥 From Flutter: " + JSON.stringify(data));
+    
+    // Update connection status - message received means we're connected!
+    updateConnectionStatus(true);
+    
+    // Extract type if available, otherwise use 'message'
+    const messageType = data?.type || data?.messageType || 'message';
+    
+    // Log immediately - Flutter se App me aa raha hai
+    addMessageToLog('received', messageType, data, 'success');
+    console.log("✅ Message logged in widget: Flutter → App");
+  } catch (e) {
+    console.error('❌ Error processing message from Flutter:', e);
+    log("❌ Error processing Flutter message: " + e.message);
+    // Still try to log the error
+    try {
+      addMessageToLog('received', 'error', { error: e.message, originalData: data }, 'error');
+    } catch (logErr) {
+      console.error('Failed to log error message:', logErr);
+    }
+  }
+};
+log('🔧 Flutter bridge receiver initialized: window.fromFlutter ready');
+
+// Initialize connection status check
+checkFlutterConnection();
+
+// Check connection status periodically (every 3 seconds)
+setInterval(function() {
+  checkFlutterConnection();
+}, 3000);
+
+// Also check when window loads or becomes visible
+window.addEventListener('load', function() {
+  setTimeout(checkFlutterConnection, 500);
+});
+
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    checkFlutterConnection();
+  }
+});
+
+// Initialize authentication and app
+log('🚀 Initializing app and checking authentication...');
+checkAuthentication();
     </script>
   </div> <!-- End of mainApp -->
 </body>
